@@ -4,7 +4,7 @@ curent: target
 
 ######################################################################
 
-Sources += $(wildcard *.md *.py)
+Sources += $(wildcard *.md *.py *.R)
 Sources += README.md
 
 ######################################################################
@@ -21,3 +21,4 @@ Sources += makefuns/*
 -include makefuns/setup.mk
 -include makefuns/setgit.mk
 -include makefuns/setpy.mk
+-include makefuns/setR.mk
