@@ -1,0 +1,199 @@
+---
+title: "sero results data"
+author: "Reinpeter"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    fig_width: 12
+    fig_height: 8
+  word_document: 
+    fig_width: 12
+    fig_height: 8
+  html_document:
+    toc: yes
+    toc_depth: 4
+    number_sections: yes
+---
+
+```{r setup, results="hide"}
+
+## Set Chunk requirements
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+```
+
+# Data Profiling
+
+## setting work directory
+
+```{r setting working directory county, results="hide"}
+
+## Setting work directory
+#setwd("F:\\Documents\\APHRC\\Data Profiling\\Data")
+
+#setwd("./../Data")
+
+setwd(".")
+
+
+```
+
+## loading relevant packages
+
+```{r loading relevant packages, results="hide"}
+
+##loading relevant packages
+library(googledrive)
+library(tidyverse)
+library(haven)
+
+```
+
+
+## loading sero data set
+
+```{r reading sero data, results="hide"}
+
+drive_auth(#email = "guest360@aphrc.org"
+           )
+
+#drive_user()
+
+sero_file_id <- drive_find(shared_drive = c(shared_drive_find()$id),
+           q = c("name contains 'sero_results_data.dta'")) #search for a specific set of shared drives, use the query string q
+
+sero_local_download <- drive_download(sero_file_id$id, overwrite = TRUE)
+
+##Reading the .dta
+sero <- read_dta(paste0(sero_local_download$local_path))%>% 
+  mutate_if(is.labelled, as_factor)
+
+
+
+sero_variable_attr <- as.data.frame(labelled::look_for(sero, labels = TRUE, values = FALSE))
+
+
+```
+
+## saving sero data localy for profiling
+
+```{r saving data localy, results="hide"}
+##saving as .csv
+readr::write_csv(sero,"sero_results_data.csv", na="")
+
+```
+
+
+# Data Profiling Report
+
+## loading scan report
+
+```{r reading scan report, results="hide"}
+
+
+scan_report_id <- drive_find(shared_drive = c(shared_drive_find()$id),
+           q = c("name contains 'ScanReport.xlsx'")) #search for a specific set of shared drives, use the query string q
+
+scan_report_local_download <- drive_download(scan_report_id$id, overwrite = TRUE)
+
+##Reading the .xlsx
+scan_report_field_overview <- readxl::read_xlsx(paste0(scan_report_local_download$local_path),
+                                 sheet = "Field Overview")%>%
+  drop_na(Table)
+
+
+```
+
+
+## updating description column in field overview
+
+```{r updating description column in field overview}
+
+scan_report_field_overview$Description <- sero_variable_attr$label
+
+```
+
+
+## saving scan report-field overview localy
+
+```{r saving scan report-field overview localy, results="hide"}
+##saving as .csv
+readr::write_csv(scan_report_field_overview,"ScanReport_field_overview_rein.csv", na="")
+
+
+```
+
+
+# Morbidity 
+
+Morbidity variable in the dataset is `r colnames(sero[, c(which(colnames(sero)=="q13_hhmember_sick" ))])` with no available associated risk factors and below frequency 
+
+```{r}
+
+library(gtsummary)
+library(flextable)
+
+set_gtsummary_theme(list(
+  "tbl_summary-fn:percent_fun" = function(x) style_percent(x, digits = 1),
+  "tbl_summary-str:categorical_stat" = "{n} ({p}%)"
+))
+# Setting `Compact` theme
+theme_gtsummary_compact()
+
+```
+
+
+## Frequency of morbidity
+
+```{r frequency of morbidity}
+
+tbl_summary(sero%>%dplyr::select(q13_hhmember_sick)%>%
+                # make dataset with variables to summarize
+  mutate_if(is.factor, ~droplevels(.x, exclude = "98")), #Drop unused levels in data
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                         #,all_continuous() ~ "continuous2"
+                        )
+                      , missing = "always" #list missing data separately #ifany #no
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Descriptives**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n()%>% # add column with total number of non-missing observations
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )
+
+
+```
+
+
+## Stratify the morbidities according to ages
+
+
+```{r frequency of morbidity according to ages}
+
+  tbl_summary(sero%>%dplyr::select(age_strata, q13_hhmember_sick)%>%
+                # make dataset with variables to summarize
+  mutate_if(is.factor, ~droplevels(.x, exclude = "98")), #Drop unused levels in data
+              by = q13_hhmember_sick,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                         #,all_continuous() ~ "continuous2"
+                        )
+                      , missing = "always" #list missing data separately #ifany #no
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Descriptives**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n()%>% # add column with total number of non-missing observations
+  #add_overall() %>%
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**HH Member Sick**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )
+
+```
+
