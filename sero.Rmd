@@ -1,0 +1,71 @@
+---
+title: "Sero_Results_data"
+author: "Hussein"
+date: "13/03/2023"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# 0install.packages("googledrive")
+```
+
+```{r}
+library(tidyverse)
+library(haven)
+library(googledrive)
+```
+
+```{r}
+drive_auth()
+```
+
+```{r}
+#drive_user()
+Sero_results_file_id <- drive_find(shared_drive = c(shared_drive_find()$id),
+           q = c("name contains '.dta'")) #search for a specific set of shared drives, use the query string q
+
+Sero_results_local_download <- drive_download(Sero_results_file_id$id, overwrite = TRUE)
+```
+
+```{r}
+##Reading the .dta
+Sero <- haven::read_dta(paste0(Sero_results_file_id$name))%>% 
+  mutate_if(is.labelled, as_factor)
+```
+
+```{r}
+##Saving as .csv
+readr::write_csv(Sero,"Sero1.csv")
+
+```
+
+```{r}
+###Dropping labels
+Sero$q13_hhmember_sick <- droplevels(Sero$q13_hhmember_sick,exclude ="98","no")
+```
+
+```{r}
+###Dropping labels
+Sero$age_strata<-droplevels(Sero$age_strata,age_strata=c("NIU (not in universe)","missing:impute"))
+```
+
+```{r}
+###Age strata by HHmember sickness
+Morbidity<-xtabs(~age_strata + q13_hhmember_sick, data=Sero)
+Morbidity
+```
+
+```{r}
+####Frequencies
+Morbidity_perc<-round(prop.table(Morbidity, margin = 1)*100,1)
+Morbidity_perc
+```
+
+
