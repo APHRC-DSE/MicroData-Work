@@ -1,0 +1,2254 @@
+---
+title: "sero results data"
+author: "Reinpeter"
+date: "`r Sys.Date()`"
+output:
+  word_document: 
+    fig_width: 12
+    fig_height: 8
+    number_sections: yes
+  pdf_document:
+    fig_width: 12
+    fig_height: 8
+    number_sections: yes
+  html_document:
+    toc: yes
+    toc_depth: 4
+    number_sections: yes
+---
+
+
+
+```{r setup, results="hide", include=FALSE}
+
+## Set Chunk requirements
+knitr::opts_chunk$set(#include = TRUE,
+                      echo=FALSE, message = FALSE, warning = FALSE)
+
+
+```
+
+```{r setting working directory, include=FALSE, results = "hide"}
+
+
+## Setting work directory
+
+setwd(".")
+
+
+```
+
+```{r loading relevant packages, include=FALSE, results = "hide"}
+
+##loading relevant packages
+library(googledrive)
+library(tidyverse)
+library(haven)
+library(knitr)
+library(janitor)
+library(plotly)
+
+library(gtsummary)
+library(flextable)
+
+set_gtsummary_theme(list(
+  "tbl_summary-fn:percent_fun" = function(x) style_percent(x, digits = 1),
+  "tbl_summary-str:categorical_stat" = "{n} ({p}%)"
+))
+# Setting `Compact` theme
+theme_gtsummary_compact()
+
+```
+
+
+```{r reading sero data, results="hide", include=FALSE}
+
+ drive_auth(#email = "guest360@aphrc.org"
+           )
+
+  #drive_user()
+
+  sero_file_id <- drive_find(shared_drive = c(shared_drive_find()$id),
+           q = c("name contains 'sero_results_data.dta'")) #search for a specific set of shared drives, use the query string q
+
+  sero_local_download <- drive_download(sero_file_id$id, overwrite = TRUE)
+
+  ##Reading the .dta
+  sero <- read_dta("sero_results_data.dta")%>%
+  mutate_if(is.labelled, as_factor)%>%
+   labelled::set_variable_labels(
+  studyid = 'sero study identification assigned to the participant',
+  q8_gender = 'The gender of the participant',
+  q7_birth_date = 'Participants date of birth',
+  today_date = 'todays date',
+  q7_age = 'Participants age in complete years',
+  age_group = 'Participants age group',
+  age_strata = 'Participants age strata',
+  sample_type = 'Participants sample type',
+  q9_location = 'Participants location',
+  q5_status = 'Participant current status',
+  consent = 'The participant consented',
+  reason_no_consent = 'The reason why the participant did not consent',
+  date_updated = 'date record was updated',
+  created_date = 'The date of interview',
+  week = 'The week of interview',
+  replace = 'Participant replaced',
+  q6_education_level = 'The school level the participant has attended',
+  q6_religion = 'The participants religion',
+  q10_covid_contact = 'Whether the participant had a contact with anyone with suspected or confirmed COVID-19/SARS-CoV-2 infection',
+  q10_contact_month = 'The month the participant had a contact with anyone with suspected or confirmed COVID-19/SARS-CoV-2 infection',
+  q10_contact_year = 'The year the participantl had a contact with anyone with suspected or confirmed COVID-19/SARS-CoV-2 infection',
+  q11_fever = 'In the past 6 months, has the participant experienced history of fever/chills',
+  q11_shortness_breath = 'In the past 6 months, has the participant experienced shortness of breath',
+  q11_pain = 'In the past 6 months, has the participant experienced pain (muscular/chest/abdominal/joint)',
+  q11_weakness = 'In the past 6 months, has the participant experienced general weakness',
+  q11_diarrhoea = 'In the past 6 months, has the participant experienced diarrhoea',
+  q11_cough = 'In the past 6 months, has the participant experienced cough',
+  q11_nausea = 'In the past 6 months, has the participant experienced nausea/vomiting',
+  q11_sore_throat = 'In the past 6 months, has the participant experienced sore throat',
+  q11_headache = 'In the past 6 months, has the participant experienced headache',
+  q11_runny_nose = 'In the past 6 months, has the participant experienced runny nose',
+  q11_irritability = 'In the past 6 months, has the participant experienced irritability/confusion',
+  q11_lost_smell = 'In the past 6 months, has the participant experienced loss of sense of smell or taste',
+  q11_other_symptom = 'In the past 6 months, has the participant experienced other symptom',
+  q11_symptom_specified = 'In the past 6 months, has the participant experienced other symptom-specify',
+  q11_unknown = 'In the past 6 months, has the participant experienced unknown(all)',
+  q11_no_symptoms = 'In the past 6 months, has the participant experienced no symptoms',
+  q11_muscular_pain = 'In the past 6 months, has the participant experienced muscular pain',
+  q11_chest_pain = 'In the past 6 months, has the participant experienced chest pain',
+  q11_abdominal_pain = 'In the past 6 months, has the participant experienced abdominal pain',
+  q11_joint_pain = 'In the past 6 months, has the participant experienced joint pain',
+  q12_medical_attention = 'Whether the mentioned symptoms required the participant to seek medical attention',
+  q12_miss_work = 'Whether the mentioned symptoms made the participant to miss work',
+  q12_hospitalized = 'Whether the mentioned symptoms made the participant to be hospitalized',
+  q21_bcg_scar = 'Whether the participant has a BCG scar',
+  q23_sampling = 'Whether the participant is willing to be sampled again to see what happens to test results',
+  q16_info_edu = 'How accessible the COVID-19 prevention services are in community including information and education',
+  q16_hand_wash = 'How accessible the COVID-19 prevention services are in community including hand washing',
+  q16_face_masks = 'How accessible the COVID-19 prevention services are in community including face masks',
+  q16_sanitizers = 'How accessible the COVID-19 prevention services are in community including hand sanitizers',
+  q16_own_risk = 'The participant rating on their own risk of getting infected with the virus that causes COVID-19',
+  q13_hhmember_sick = 'Whether in the past 6 months, anybody from the participant household has been sick',
+  q13_hhm_fever = 'In the past 6 months, has anybody from the participant household been sick with symtoms of fever/chills',
+  q13_hhm_shortness_breath = 'In the past 6 months, has anybody from the participant household been sick with symtoms of shortness of breath',
+  q13_hhm_pain = 'In the past 6 months, has anybody from the participant household been sick with symtoms of pain (muscular/chest/abdominal/joint)',
+  q13_hhm_weakness = 'In the past 6 months, has anybody from the participant household been sick with symtoms of general weakness',
+  q13_hhm_diarrhoea = 'In the past 6 months, has anybody from the participant household been sick with symtoms of diarrhoea',
+  q13_hhm_cough = 'In the past 6 months, has anybody from the participant household been sick with symtoms of cough',
+  q13_hhm_nausea = 'In the past 6 months, has anybody from the participant household been sick with symtoms of nausea/vomiting',
+  q13_hhm_sore_throat = 'In the past 6 months, has anybody from the participant household been sick with symtoms of sore throat',
+  q13_hhm_headache = 'In the past 6 months, has anybody from the participant household been sick with symtoms of headache',
+  q13_hhm_runny_nose = 'In the past 6 months, has anybody from the participant household been sick with symtoms of runny nose',
+  q13_hhm_irritability = 'In the past 6 months, has anybody from the participant household been sick with symtoms of irritability/confusion',
+  q13_hhm_lost_smell = 'In the past 6 months, has anybody from the participant household been sick with symtoms of loss of sense of smell or taste',
+  q13_hhm_other_symptom = 'In the past 6 months, has anybody from the participant household been sick with other symtoms',
+  q13_hhm_no_symptoms = 'In the past 6 months, has anybody from the participant household experienced no symptoms',
+  q13_hhm_unknown = 'In the past 6 months, has anybody from the participant household been sick with unknown(all)',
+  q13_hhm_symptom_specified = 'In the past 6 months, has anybody from the participant household been sick with other symtoms-specify',
+  q13_hhm_muscular_pain = 'In the past 6 months, has anybody from the participant household been sick with symtoms of muscular pain',
+  q13_hhm_chest_pain = 'In the past 6 months, has anybody from the participant household been sick with symtoms of chest pain',
+  q13_hhm_abdominal_pain = 'In the past 6 months, has anybody from the participant household been sick with symtoms of abdominal pain',
+  q13_hhm_joint_pain = 'In the past 6 months, has anybody from the participant household been sick with symtoms of joint pain',
+  q13_hhm_symptoms_cause = 'In the past 6 months, has anybody from the participant household been sick with symtoms. If yes, reported cause of   symptoms',
+  q14_hhm_medical_attention = 'Whether any of these symptoms required household member to seek medical attention',
+  q14_hhm_miss_work = 'Whether any of these symptoms caused household member to miss work',
+  q14_hhm_hospitalized = 'Whether any of these symptoms required household member to be hospitalised',
+  q15_hhm_died = 'Whether in the last 6 months, any member of the participants household has died',
+  q17_electricity = 'Participant household has electricity',
+  q17_television = 'Participant household has a television',
+  q17_sofa = 'Participant household has a sofa',
+  q17_cupboard = 'Participant household has a cupboard',
+  q17_dvd_player = 'Participant household has a DVD player',
+  q17_radio = 'Participant household has a radio',
+  q17_tables = 'Participant household has a table',
+  q17_clock = 'Participant household has a clock',
+  q17_none = 'The participant household has no: electricity/television/sofa/cupboard/DVD player/radio/table/clock',
+  q17_floor_type = 'The main material of the floor of the participant dwelling/house',
+  q17_wall_type = 'The main material of the external walls of the participants dwelling/house',
+  q17_roof_type = 'The main material of the roof of the participants dwelling/house',
+  q17_fuel_type = 'The type of fuel the participants household mainly use for cooking',
+  q17_toilet_type = 'The kind of toilet facility the members of the participants household usually use',
+  q18_outmigrant_member = 'Whether any of the participants household member had left the household in the last 6 months',
+  q18_outmigrant_dest = 'The place where the participants household member migrated to',
+  q18_outmigration_reason = 'The reason for out-migration',
+  q18_inmigrant_member = 'Whether any of the participants household member joined the household in the last 6 months',
+  q18_inmigrant_origin = 'The place where the participants household member migrated from',
+  q18_inmigration_reason = 'The reason for in-migration',
+  q19_lost_job = 'Whether there is a household member who had lost a job or source livelihood in the last 6 months',
+  q19_reason_joblost = 'The reason for losing job',
+  q20_healthcare_access = 'The participant in the last 6 months was unable to access and use healthcare services that they would normally have   access',
+  q20_missed_service_reason = 'The reason for missing healthcare services',
+  q20_services_missed = 'The healthcare services the participant missed',
+  q22_vaccine_records = 'Whether the child has vaccination records',
+  q22_reason_nocard = 'Reason for no vaccination records',
+  q24_sample_collected = 'Whether the blood sample was collected',
+  fk_study = 'The sero laboratory id',
+  reason_not_collected = 'If sample not taken, the reason why the blood was not collected',
+  sample_date_collected = 'The date blood was collected',
+  blood_group = 'The participants blood group',
+  covid_vaccine = 'Whether the participant has received covid vaccine',
+  covid_vac_type = 'The type of covid vaccine the participant has received',
+  covid_vac_type_spy = 'The type of covid vaccine the participant has received',
+  bcg_confirm = 'bcg vaccine confirmation',
+  penta1_confirm = 'penta1 vaccine confirmation',
+  penta2_confirm = 'penta2 vaccine confirmation',
+  penta3_confirm = 'penta3 vaccine confirmation',
+  pcv1_confirm = 'pcv1 vaccine confirmation',
+  pcv2_confirm = 'pcv2 vaccine confirmation',
+  pcv3_confirm = 'pcv3 vaccine confirmation',
+  mcv1_confirm = 'mcv1 vaccine confirmation',
+  mcv2_confirm = 'mcv2 vaccine confirmation',
+  bcg = 'bcg vaccine',
+  penta1 = 'penta1 vaccine',
+  penta2 = 'penta2 vaccine',
+  penta3 = 'penta3 vaccine',
+  pcv1 = 'pcv1 vaccine',
+  pcv2 = 'pcv2 vaccine',
+  pcv3 = 'pcv3 vaccine',
+  mcv1 = 'mcv1 vaccine',
+  mcv2 = 'mcv2 vaccine',
+  bcg_date = 'bcg vaccine date',
+  penta1_date = 'penta1 vaccine date',
+  penta2_date = 'penta2 vaccine date',
+  penta3_date = 'penta3 vaccine date',
+  pcv1_date = 'pcv1 vaccine date',
+  pcv2_date = 'pcv2 vaccine date',
+  pcv3_date = 'pcv3 vaccine date',
+  mcv1_date = 'mcv1 vaccine date',
+  mcv2_date = 'mcv2 vaccine date',
+  spike_negOD = 'negOD',
+  spikeODratio = 'Odratio',
+  spikepos = 'sero positive'
+
+   )
+
+sero1 <- read_dta("sero_results_data.dta") #read_dta(paste0(sero_local_download$local_path))
+
+sero_variable_attr <- as.data.frame(labelled::look_for(sero, labels = TRUE, values = TRUE))
+
+sero_variable_attr1 <- as.data.frame(labelled::look_for(sero1, labels = TRUE, values = TRUE))
+
+
+```
+
+
+```{r saving data localy, results="hide", include=FALSE}
+#saving as .csv
+readr::write_csv(sero,"sero_results_data.csv", na="")
+
+```
+
+
+```{r reading scan report, results="hide", include=FALSE}
+
+#downloading data from shared google drive
+
+scan_report_id <- drive_find(shared_drive = c(shared_drive_find()$id),
+           q = c("name contains 'ScanReport.xlsx'")) #search for a specific set of shared drives, use the query string q
+
+scan_report_local_download <- drive_download(scan_report_id$id, overwrite = TRUE)
+
+#Reading the .xlsx
+
+scan_report_field_overview <- readxl::read_xlsx("ScanReport.xlsx",sheet = "Field Overview")%>%
+  drop_na(Table)
+ #read_xlsx(paste0(scan_report_local_download$local_path),sheet = "Field Overview")
+
+
+```
+
+
+```{r updating description column in field overview, results="hide", include=FALSE}
+
+scan_report_field_overview$Description <- sero_variable_attr$label
+
+```
+
+
+```{r saving scan report-field overview localy, results="hide", include=FALSE}
+#saving as .csv
+readr::write_csv(scan_report_field_overview,"ScanReport_field_overview_rein.csv", na="")
+
+```
+
+
+```{r sero data for plots, results="hide", include=FALSE}
+
+sero_final <- sero%>%
+    mutate(spikepos = ifelse(spikepos == 0, "no",
+                    ifelse(spikepos == 1, "yes", spikepos)),
+         spikepos = fct_rev(as.factor(spikepos)))%>%
+    mutate(q17_none = as.character(q17_none),
+           q17_none = ifelse((rowSums(across(c(q17_electricity:q17_clock), ~.x=="missing:impute")))>0, "missing:impute",
+                      ifelse((rowSums(across(c(q17_electricity:q17_clock), ~.x=="yes")))<1, "yes", "no")),
+           q17_none = factor(q17_none, levels = c("yes", "no", "missing:impute")))%>%
+    mutate(across(c(q14_hhm_medical_attention, q14_hhm_miss_work, q14_hhm_hospitalized),~ as.character(.x)))%>%
+    mutate(across(c(q14_hhm_medical_attention, q14_hhm_miss_work, q14_hhm_hospitalized),
+                ~ ifelse(q13_hhm_no_symptoms== "yes", "NIU (not in universe)", .x)))%>%
+   mutate(across(c(q14_hhm_medical_attention, q14_hhm_miss_work, q14_hhm_hospitalized),
+                 ~factor(.x, levels = c("NIU (not in universe)", "no", "yes", "missing:impute"))))%>%
+   mutate(q7_age_new = round(time_length(difftime(today_date, q7_birth_date, units = "auto"), unit = "year"),1),
+     age_group_new = ifelse(q7_age_new < 18, "less than 18 years",
+                          ifelse(q7_age_new < 35, "18-34 years",
+                          ifelse(q7_age_new < 50, "35-49 years", "50 years and above" ))),
+          age_group_new = factor(age_group_new, levels = c("less than 18 years", "18-34 years",
+                                                           "35-49 years", "50 years and above")))%>%
+  mutate(q11_muscular_pain_overall = q11_muscular_pain,
+  q11_chest_pain_overall = q11_chest_pain,
+  q11_abdominal_pain_overall = q11_abdominal_pain,
+  q11_joint_pain_overall = q11_joint_pain,
+  q13_hhm_muscular_pain_overall = q13_hhm_muscular_pain,
+  q13_hhm_chest_pain_overall = q13_hhm_chest_pain,
+  q13_hhm_abdominal_pain_overall = q13_hhm_abdominal_pain,
+  q13_hhm_joint_pain_overall = q13_hhm_joint_pain)%>%
+  mutate(across(c(q11_muscular_pain_overall:q11_joint_pain_overall), ~ fct_collapse(.x, no = c("no", "NIU (not in universe)"))))%>%
+  mutate(across(c(q13_hhm_muscular_pain_overall:q13_hhm_joint_pain_overall), ~ fct_collapse(.x, no = c("no", "NIU (not in universe)"))))%>%
+  mutate(across(c(q13_hhm_muscular_pain_overall:q13_hhm_joint_pain_overall), ~ na_if(.x, "missing:impute")))%>%
+               mutate(across(c(q13_hhm_muscular_pain_overall:q13_hhm_joint_pain_overall), ~ fct_drop(.x)))%>%
+   labelled::set_variable_labels(
+     spikepos = "sero positive",
+     q17_none = "The participant household has no: electricity/television/sofa/cupboard/DVD player/radio/table/clock",
+     q14_hhm_medical_attention = "Whether any of these symptoms required household member to seek medical attention",
+     q14_hhm_miss_work = "Whether any of these symptoms caused household member to miss work", 
+     q14_hhm_hospitalized = "Whether any of these symptoms required household member to be hospitalised",
+     q7_age_new = "Participants age in years-new", 
+     age_group_new = "Participants age group-new",
+     q11_muscular_pain_overall = 'In the past 6 months, has the participant experienced muscular pain - overall',
+    q11_chest_pain_overall = 'In the past 6 months, has the participant experienced chest pain - overall',
+    q11_abdominal_pain_overall = 'In the past 6 months, has the participant experienced abdominal pain - overall',
+    q11_joint_pain_overall = 'In the past 6 months, has the participant experienced joint pain - overall',
+  q13_hhm_muscular_pain_overall = 'In the past 6 months, has anybody from the participant household been sick with symtoms of muscular pain- overall',
+  q13_hhm_chest_pain_overall = 'In the past 6 months, has anybody from the participant household been sick with symtoms of chest pain- overall',
+  q13_hhm_abdominal_pain_overall = 'In the past 6 months, has anybody from the participant household been sick with symtoms of abdominal pain - overall',
+  q13_hhm_joint_pain_overall = 'In the past 6 months, has anybody from the participant household been sick with symtoms of joint pain - overall')%>%
+  mutate_if(is.factor, ~fct_drop(.x #, only = c("NIU (not in universe)","missing:impute", "don't know", "other(specify)")
+            )) #drop specific unused factor levels
+
+```
+
+
+```{r sero final data for analysis, results="hide", include=FALSE}
+
+sero_final_analysis <- sero_final%>%
+               mutate(across(c(q11_muscular_pain:q11_joint_pain,
+                                        q12_medical_attention, q12_miss_work, q12_hospitalized),
+                               ~ na_if(.x, "NIU (not in universe)")))%>%
+               mutate(across(c(q11_muscular_pain:q11_joint_pain,
+                                        q12_medical_attention, q12_miss_work, q12_hospitalized),
+                               ~ fct_drop(.x)))%>%
+                mutate(q13_hhm_no_symptoms = fct_collapse(q13_hhm_no_symptoms, yes = c("yes", "NIU (not in universe)")))%>%
+               mutate(across(c(q13_hhm_fever:q13_hhm_other_symptom), ~ fct_collapse(.x, no = c("no", "NIU (not in universe)"))))%>%
+               mutate(q13_hhmember_sick = na_if(q13_hhmember_sick, "98"))%>%
+               mutate(across(c(q13_hhm_no_symptoms, q13_hhm_fever:q13_hhm_other_symptom, q13_hhm_muscular_pain:q13_hhm_joint_pain,
+                                        q14_hhm_medical_attention, q14_hhm_miss_work, q14_hhm_hospitalized), ~ na_if(.x, "missing:impute")))%>%
+               mutate(across(c(q13_hhm_muscular_pain:q13_hhm_joint_pain, q14_hhm_medical_attention, q14_hhm_miss_work, q14_hhm_hospitalized),
+                             ~ na_if(.x, "NIU (not in universe)")))%>%
+               mutate(across(c(q13_hhmember_sick, q13_hhm_no_symptoms, q13_hhm_fever:q13_hhm_other_symptom, 
+                               q13_hhm_muscular_pain:q13_hhm_joint_pain,
+                                        q14_hhm_medical_attention, q14_hhm_miss_work, q14_hhm_hospitalized), ~ fct_drop(.x)))%>%
+               mutate(q20_services_missed = na_if(q20_services_missed, "NIU (not in universe)"))%>%
+               mutate(across(c(q20_healthcare_access, q20_services_missed), ~ na_if(.x, "missing:impute")))%>%
+               mutate(across(c(q20_healthcare_access, q20_services_missed), ~ fct_drop(.x)))%>%
+               mutate(across(c(q17_electricity:q17_none), ~ na_if(.x, "missing:impute")))%>%
+               mutate(across(c(q17_electricity:q17_none), ~ fct_drop(.x)))
+
+```
+
+
+# **Introduction**
+
+This study titled [**Surveillance and epidemiologic evaluation of COVID-19, DFID-2019 Serosurveillance Project**](https://microdataportal.aphrc.org/index.php/catalog/138/study-description) was under the **Health and Well-Being (HaW) Theme** and aimed to describe the clinical, demographic, and genomic profile, trends, clinical course and outcomes of patients with COVID-19 through surveillance. It was carried out from Individual respondents who are residents of Korogocho and Viwandani.
+
+
+# **Data**
+
+Data collected electronically using (SARS COV-2 Sero-survey - Questionnaire) included:
+
+* Sociodemographic information: Participants name, ethnicity, education, religion, age, gender, place of residence.
+
+* Health information: Access to prevention services, risk of exposure to COVID 19, outmigration and inmigration information, vaccination status of children participants, laboratory information including blood sample collection and blood grouping.
+
+
+## Data description
+
+* The data has `r ncol(sero)` variables and `r nrow(sero)` observations.
+
+* All `r nrow(sero_final[sero_final$consent=="yes",])` individuals consented to participate in the research and all `r nrow(sero_final[sero_final$q5_status=="present",])` were present. 
+
+* `r paste0(nrow(sero_final[sero_final$replace=="yes",]), "(",round((nrow(sero_final[sero_final$replace=="yes",])*100)/nrow(sero_final),1), "%)")` of the participants were replaced.
+
+
+
+```{r data description}
+
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(consent, replace, q5_status), 
+                      type = list(
+                        all_dichotomous() ~ "categorical")
+                      , missing = "no" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Descriptives**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  as_flex_table() #covert gtsummary object to knitrkable object. also use as_flex_table() to maintain identation, footnotes, spanning headers
+
+
+```
+
+## Data Dictionary
+
+Information about the attributes of sero data contains 6 columns namely:
+
+- **pos:** Column position of variable in data
+- **variable:** Study variable
+- **label:** Description of study variable
+- **col_type:** Data type. i.e dbl(numeric variable), fct(categorical variable), date(date variable), chr(character/string variable)
+- **levels:** variable levels/categories
+- **value_labels:** value of variable categories
+
+```{r data dictionary, results='asis'}
+
+kable(
+  sero_variable_attr%>%
+    mutate(value_labels = sero_variable_attr1$value_labels)
+  )
+
+
+```
+
+
+# **Descriptive statistics**
+
+## Outcome variable
+
+`r paste0("(",round((nrow(sero_final[sero_final$spikepos=="yes" & !is.na(sero_final$spikepos),])*100)/nrow(sero_final[!is.na(sero_final$spikepos),]),1), "%)")` of the participants had the likelihood they would be sero positive if the results were out.
+
+```{r outcome}
+
+ tbl_summary(sero_final_analysis%>%dplyr::select(spikepos), 
+                      type = list(
+                        all_dichotomous() ~ "categorical")
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Outcome Variable**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  as_flex_table() #covert gtsummary object to knitrkable object. also use as_flex_table() to maintain identation, footnotes, spanning headers
+
+
+```
+
+
+## Sociodemographics of Participants
+
+* Participants mean age was `r paste0(round(mean(sero_final$q7_age_new),2)," (sd=", round(sd(sero_final$q7_age_new),2), ")" )` years. 
+
+* Majority of the respondents were from Viwandani `r paste0("(",round((nrow(sero_final[sero_final$q9_location=="viwandani",])*100)/nrow(sero_final),1), "%)")`, with biggest proportion having primary school as highest level of education `r paste0("(",round((nrow(sero_final[sero_final$q6_education_level=="primary",])*100)/nrow(sero_final),1), "%)")` and smallest proportion aged 35-49 years `r paste0("(",round((nrow(sero_final[sero_final$age_group_new=="35-49 years",])*100)/nrow(sero_final),1), "%)")`.
+
+* More than half the participants were male `r paste0("(",round((nrow(sero_final[sero_final$q8_gender=="male",])*100)/nrow(sero_final),1), "%)")` and the smallest proportion having no religion `r paste0("(",round((nrow(sero_final[sero_final$q6_religion=="none",])*100)/nrow(sero_final),1), "%)")`.
+
+
+```{r sociodemographics gender education}
+
+
+ tbl_summary(sero_final_analysis%>%dplyr::select(q9_location, q8_gender, q6_education_level, age_group_new, q7_age_new, q6_religion), 
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        ,all_continuous() ~ "continuous2"
+                        )
+                      , statistic = all_continuous() ~ c(
+                        "{mean} ({sd})",
+                        "{median} ({p25}, {p75})",
+                        "{min}, {max}" )
+                      , digits = all_continuous() ~ 2
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Sociodemographics of Participants**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  as_flex_table() #covert gtsummary object to knitrkable object. also use as_flex_table() to maintain identation, footnotes, spanning headers
+
+
+```
+
+
+## Health Symptoms of Participants
+
+* `r paste0("(",round((nrow(sero_final[sero_final$q11_no_symptoms=="no",])*100)/nrow(sero_final),1), "%)")` of the participants experienced at least one health symptom.
+
+* Out of the 13 symptoms experienced, the top 6 (in descending order) were:
+
+1. cough `r paste0("(",round((nrow(sero_final[sero_final$q11_cough=="yes",])*100)/nrow(sero_final),1), "%)")`
+2. headache `r paste0("(",round((nrow(sero_final[sero_final$q11_headache=="yes",])*100)/nrow(sero_final),1), "%)")`
+3. runny nose `r paste0("(",round((nrow(sero_final[sero_final$q11_runny_nose=="yes",])*100)/nrow(sero_final),1), "%)")`
+4. fever `r paste0("(",round((nrow(sero_final[sero_final$q11_fever=="yes",])*100)/nrow(sero_final),1), "%)")` 
+5. weakness `r paste0("(",round((nrow(sero_final[sero_final$q11_weakness=="yes",])*100)/nrow(sero_final),1), "%)")`
+6. pain `r paste0("(",round((nrow(sero_final[sero_final$q11_pain=="yes",])*100)/nrow(sero_final),1), "%)")` 
+
+```{r}
+
+
+ tbl_summary(sero_final_analysis%>%dplyr::select(q11_no_symptoms, q11_fever:q11_other_symptom,
+                                        q11_muscular_pain:q11_joint_pain,
+                                        q11_muscular_pain_overall:q11_joint_pain_overall,
+                                        q12_medical_attention, q12_miss_work, q12_hospitalized), 
+                      type = list(
+                        all_dichotomous() ~ "categorical")
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Health Symptoms of Participants**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  as_flex_table() #covert gtsummary object to knitrkable object. also use as_flex_table() to maintain identation, footnotes, spanning headers
+
+
+```
+
+
+```{r, fig.width=10, fig.height=6}
+
+ sero_final%>%
+  dplyr::select(q11_fever:q11_other_symptom)%>%
+  pivot_longer(cols = everything(),
+               names_to = "symptoms",
+               values_to = "value")%>%
+  mutate(n = 1)%>%
+  mutate(symptoms = str_replace(symptoms, "q11_", ""),
+         value = as.character(value))%>%
+  mutate(symptoms = gsub("_", " ", symptoms))%>%
+  filter(value=="yes")%>%
+  group_by(symptoms, value)%>%
+  summarise(n = sum(n), .groups = 'drop')%>%
+  mutate(p = round((n/nrow(sero_final))*100,1))%>%
+  arrange(n)%>%
+  mutate(symptoms = as_factor(symptoms))%>%
+  ggplot(aes(fill=value, y = n, x=symptoms))+
+  geom_bar(position = "dodge", stat = "identity", width=0.8)+
+  geom_text(aes(label= paste0(n," (", p,"%)" )), vjust=0.4, hjust=-0.1,
+            position = position_dodge(0.9), color="black", size=4.5)+
+  #scale_y_continuous(n.breaks = 5)+
+  scale_y_continuous(breaks = seq(0, 450, by = 50), limits = c(0, 450))+
+  theme_minimal()+
+  theme(legend.position="none",
+  legend.text = element_text(size = 12),
+  legend.title = element_text(size = 15, color = "red", face = "bold")
+  ,axis.text.y = element_text(angle = 0, size = 14)
+  ,axis.text.x = element_text(angle = 0, size = 14),
+  #plot.title = element_text(vjust = 0.5, face = "bold", size = 16),
+  plot.caption = element_text(angle = 0, size = 12, face = "italic"),
+  axis.title.x = element_text(size = 16),
+  axis.title.y = element_text(size = 16),
+  #axis.line.y = element_line(colour = "black",inherit.blank = FALSE),
+  panel.grid.major.y = element_blank(),
+  panel.grid.major.x = element_line(color = "grey"),
+  panel.grid.minor.x = element_blank())+
+  geom_hline(yintercept = 0, color = "black")+
+  labs(title = "", x= "Symptoms of Participants", y="n", fill="", caption = "N=870")+
+  coord_flip()+
+  guides(fill= guide_legend(reverse = TRUE))
+  
+
+```
+
+* Participants who experienced pain symptom were `r nrow(sero_final[sero_final$q11_pain=="yes",])` with highest proportion of those having chest pain `r paste0("(",round((nrow(sero_final[sero_final$q11_chest_pain=="yes",])*100)/nrow(sero_final[sero_final$q11_pain=="yes",]),1), "%)")` and the least proportion having abdominal pain `r paste0("(",round((nrow(sero_final[sero_final$q11_abdominal_pain=="yes",])*100)/nrow(sero_final[sero_final$q11_pain=="yes",]),1), "%)")`.  
+
+
+```{r, fig.width=10, fig.height=6}
+
+  sero_final%>%
+  dplyr::select(q11_muscular_pain:q11_joint_pain)%>%
+  pivot_longer(cols = everything(),
+               names_to = "pain",
+               values_to = "value")%>%
+  mutate(n = 1)%>%
+  mutate(pain = str_replace(pain, "q11_", ""),
+         value = as.character(value))%>%
+  mutate(pain = gsub("_", " ", pain))%>%
+  filter(value != "NIU (not in universe)", value=="yes")%>%
+  group_by(pain, value)%>%
+  summarise(n = sum(n), .groups = 'drop')%>%
+  mutate(p = round((n/nrow(sero_final[sero_final$q11_pain=="yes",]))*100,1))%>%
+  arrange(n)%>%
+  mutate(pain = as_factor(pain))%>%
+  ggplot(aes(fill=value, y = n, x=pain))+
+  geom_bar(position = "dodge", stat = "identity", width=0.8)+
+  geom_text(aes(label= paste0(n," (", p,"%)" )), vjust=0.4, hjust=-0.1,
+            position = position_dodge(0.9), color="black", size=4.5)+
+  #scale_y_continuous(n.breaks = 5)+
+  scale_y_continuous(breaks = seq(0,120, by = 30), limits = c(0, 120))+
+  theme_minimal()+
+  theme(legend.position="none",
+  legend.text = element_text(size = 12),
+  legend.title = element_text(size = 15, color = "red", face = "bold")
+  ,axis.text.y = element_text(angle = 0, size = 14)
+  ,axis.text.x = element_text(angle = 0, size = 14),
+  #plot.title = element_text(vjust = 0.5, face = "bold", size = 16),
+  plot.caption = element_text(angle = 0, size = 12, face = "italic"),
+  axis.title.x = element_text(size = 16),
+  axis.title.y = element_text(size = 16),
+  #axis.line.y = element_line(colour = "black",inherit.blank = FALSE),
+  panel.grid.major.y = element_blank(),
+  panel.grid.major.x = element_line(color = "grey"),
+  panel.grid.minor.x = element_blank())+
+  geom_hline(yintercept = 0, color = "black")+
+  labs(x= "Pain Symptom of Participants", y="n", fill="", caption = "Participants who had\n pain symptoms: N=210")+
+  coord_flip()+
+  guides(fill= guide_legend(reverse = TRUE))
+  
+
+```
+
+* Of the `r nrow(sero_final[sero_final$q11_no_symptoms=="no",])` participants who experienced at least one health symptom, majority `r paste0("(",round((nrow(sero_final[sero_final$q12_medical_attention=="yes",])*100)/nrow(sero_final[sero_final$q11_no_symptoms=="no",]),1), "%)")` required medical attention and the least `r paste0("(",round((nrow(sero_final[sero_final$q12_hospitalized=="yes",])*100)/nrow(sero_final[sero_final$q11_no_symptoms=="no",]),1), "%)")` required to be hospitalized.
+
+
+```{r, fig.width=10, fig.height=6}
+
+  sero_final%>%
+  dplyr::select(q12_medical_attention, q12_miss_work, q12_hospitalized)%>%
+  pivot_longer(cols = everything(),
+               names_to = "cause",
+               values_to = "value")%>%
+  mutate(n = 1)%>%
+  mutate(cause = str_replace(cause, "q12_", ""),
+         cause = ifelse(cause == "medical_attention", "seek medical attention",
+                 ifelse(cause == "miss_work", "miss work", "be hospitalized")),
+         value = as.character(value))%>%
+  filter(value != "NIU (not in universe)", value=="yes")%>%
+  group_by(cause, value)%>%
+  summarise(n = sum(n), .groups = 'drop')%>%
+  mutate(p = round((n/nrow(sero_final[sero_final$q11_no_symptoms=="no",]))*100,1))%>%
+  arrange(n)%>%
+  mutate(cause = as_factor(cause))%>%
+  ggplot(aes(fill=value, y = n, x=cause))+
+  geom_bar(position = "dodge", stat = "identity", width=0.8)+
+  geom_text(aes(label= paste0(n," (", p,"%)" )), vjust=0.4, hjust=-0.1,
+            position = position_dodge(0.9), color="black", size=4.5)+
+  #scale_y_continuous(n.breaks = 5)+
+  scale_y_continuous(breaks = seq(0, 450, by = 50), limits = c(0, 455))+
+  theme_minimal()+
+  theme_minimal()+
+  theme(legend.position="none",
+  legend.text = element_text(size = 12),
+  legend.title = element_text(size = 15, color = "red", face = "bold")
+  ,axis.text.y = element_text(angle = 0, size = 14)
+  ,axis.text.x = element_text(angle = 0, size = 14),
+  #plot.title = element_text(vjust = 0.5, face = "bold", size = 16),
+  plot.caption = element_text(angle = 0, size = 12, face = "italic"),
+  axis.title.x = element_text(size = 16),
+  axis.title.y = element_text(size = 16),
+  #axis.line.y = element_line(colour = "black",inherit.blank = FALSE),
+  panel.grid.major.y = element_blank(),
+  panel.grid.major.x = element_line(color = "grey"),
+  panel.grid.minor.x = element_blank())+
+  geom_hline(yintercept = 0, color = "black")+
+  labs(x= "Did any of these symptoms\n require you to...", y="n", fill="", caption = "Participants who had\n symptoms: N=689")+
+  coord_flip()+
+  guides(fill= guide_legend(reverse = TRUE))
+  
+
+```
+
+
+## Health Symptoms of Household members
+
+* In the last 6 months, more than half of participants household members had not been sick `r paste0("(",round((nrow(sero_final[sero_final$q13_hhmember_sick=="no",])*100)/nrow(sero_final),1), "%)")` and majority had not died `r paste0("(",round((nrow(sero_final[sero_final$q15_hhm_died=="no",])*100)/nrow(sero_final),1), "%)")`. 
+
+
+```{r}
+
+
+ tbl_summary(sero_final_analysis%>%dplyr::select(q13_hhmember_sick, q15_hhm_died, q13_hhm_no_symptoms,
+                                        q13_hhm_fever:q13_hhm_other_symptom,
+                                        q13_hhm_muscular_pain:q13_hhm_joint_pain,
+                                        q13_hhm_muscular_pain_overall:q13_hhm_joint_pain_overall,
+                                        q14_hhm_medical_attention, q14_hhm_miss_work, q14_hhm_hospitalized)
+               , 
+                      type = list(
+                        all_dichotomous() ~ "categorical")
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Health Symptoms of Household members**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  as_flex_table() #covert gtsummary object to knitrkable object. also use as_flex_table() to maintain identation, footnotes, spanning headers
+
+```
+
+* `r paste0("(",round((nrow(sero_final[sero_final$q13_hhm_no_symptoms=="no",])*100)/nrow(sero_final),1), "%)")` of the participants household members experienced at least one health symptom with cough `r paste0("(",round((nrow(sero_final[sero_final$q13_hhm_cough=="yes",])*100)/nrow(sero_final[sero_final$q13_hhm_cough !="missing:impute",]),1), "%)")` being the most experienced symptom, followed by fever `r paste0("(",round((nrow(sero_final[sero_final$q13_hhm_fever=="yes",])*100)/nrow(sero_final[sero_final$q13_hhm_fever !="missing:impute",]),1), "%)")`, runny nose `r paste0("(",round((nrow(sero_final[sero_final$q13_hhm_runny_nose=="yes",])*100)/nrow(sero_final[sero_final$q13_hhm_runny_nose !="missing:impute",]),1), "%)")` , headache `r paste0("(",round((nrow(sero_final[sero_final$q13_hhm_headache=="yes",])*100)/nrow(sero_final[sero_final$q13_hhm_headache !="missing:impute",]),1), "%)")`, pain `r paste0("(",round((nrow(sero_final[sero_final$q13_hhm_pain=="yes",])*100)/nrow(sero_final[sero_final$q13_hhm_pain !="missing:impute",]),1), "%)")` and weakness `r paste0("(",round((nrow(sero_final[sero_final$q13_hhm_weakness=="yes",])*100)/nrow(sero_final[sero_final$q13_hhm_weakness !="missing:impute",]),1), "%)")`. 
+
+
+```{r, fig.width=10, fig.height=6}
+
+  sero_final%>%
+  dplyr::select(q13_hhm_fever:q13_hhm_other_symptom)%>%
+  pivot_longer(cols = everything(),
+               names_to = "symptoms",
+               values_to = "value")%>%
+  mutate(n = 1)%>%
+  mutate(symptoms = str_replace(symptoms, "q13_", ""),
+         value = as.character(value))%>%
+  mutate(value = ifelse(value == "NIU (not in universe)", "no", value),
+         symptoms = gsub("_", " ", symptoms))%>%
+  filter(value !="missing:impute", value=="yes")%>%
+  group_by(symptoms, value)%>%
+  summarise(n = sum(n), .groups = 'drop')%>%
+  mutate(p = round((n/nrow(sero_final[sero_final$q13_hhm_fever !="missing:impute",]))*100,1))%>%
+  arrange(n)%>%
+  mutate(symptoms = as_factor(symptoms))%>%
+  ggplot(aes(fill=value, y = n, x=symptoms))+
+  geom_bar(position = "dodge", stat = "identity", width=0.8)+
+  geom_text(aes(label= paste0(n," (", p,"%)" )), vjust=0.4, hjust=-0.1,
+            position = position_dodge(0.9), color="black", size=4.5)+
+  #scale_y_continuous(n.breaks = 5)+
+  scale_y_continuous(breaks = seq(0, 200, by = 40), limits = c(0, 200))+
+  theme_minimal()+
+  theme(legend.position="none",
+  legend.text = element_text(size = 12),
+  legend.title = element_text(size = 15, color = "red", face = "bold")
+  ,axis.text.y = element_text(angle = 0, size = 14)
+  ,axis.text.x = element_text(angle = 0, size = 14),
+  #plot.title = element_text(vjust = 0.5, face = "bold", size = 16),
+  plot.caption = element_text(angle = 0, size = 12, face = "italic"),
+  axis.title.x = element_text(size = 16),
+  axis.title.y = element_text(size = 16),
+  #axis.line.y = element_line(colour = "black",inherit.blank = FALSE),
+  panel.grid.major.y = element_blank(),
+  panel.grid.major.x = element_line(color = "grey"),
+  panel.grid.minor.x = element_blank())+
+  geom_hline(yintercept = 0, color = "black")+
+  labs(x= "Symptoms of Household members", y="n", fill="", caption = "hhm=household member\n 1 missing impute: N=869")+
+  coord_flip()+
+  guides(fill= guide_legend(reverse = TRUE))
+  
+
+```
+
+* Participants household members who experienced pain symptom were `r nrow(sero_final[sero_final$q13_hhm_pain=="yes",])` with highest proportion of those having chest pain `r paste0("(",round((nrow(sero_final[sero_final$q13_hhm_chest_pain=="yes",])*100)/nrow(sero_final[sero_final$q13_hhm_pain=="yes",]),1), "%)")` followed by abdominal pain `r paste0("(",round((nrow(sero_final[sero_final$q13_hhm_abdominal_pain=="yes",])*100)/nrow(sero_final[sero_final$q13_hhm_pain=="yes",]),1), "%)")` and the least proportion having muscular pain `r paste0("(",round((nrow(sero_final[sero_final$q13_hhm_muscular_pain=="yes",])*100)/nrow(sero_final[sero_final$q13_hhm_pain=="yes",]),1), "%)")`.
+
+
+```{r, fig.width=10, fig.height=6}
+
+  sero_final%>%
+  dplyr::select(q13_hhm_muscular_pain:q13_hhm_joint_pain)%>%
+  pivot_longer(cols = everything(),
+               names_to = "pain",
+               values_to = "value")%>%
+  mutate(n = 1)%>%
+  mutate(pain = str_replace(pain, "q13_", ""),
+         value = as.character(value),
+         pain = gsub("_", " ", pain))%>%
+  filter(value != "NIU (not in universe)", value != "missing:impute", value=="yes")%>%
+  group_by(pain, value)%>%
+  summarise(n = sum(n), .groups = 'drop')%>%
+  mutate(p = round((n/nrow(sero_final[sero_final$q13_hhm_pain =="yes",]))*100,1))%>%
+  arrange(n)%>%
+  mutate(pain = as_factor(pain))%>%
+  ggplot(aes(fill=value, y = n, x=pain))+
+  geom_bar(position = "dodge", stat = "identity", width=0.8)+
+  geom_text(aes(label= paste0(n," (", p,"%)" )), vjust=0.4, hjust=-0.1,
+            position = position_dodge(0.9), color="black", size=4.5)+
+  #scale_y_continuous(n.breaks = 5)+
+  scale_y_continuous(breaks = seq(0,50, by = 10), limits = c(0, 55))+
+  theme_minimal()+
+  theme(legend.position="none",
+  legend.text = element_text(size = 12),
+  legend.title = element_text(size = 15, color = "red", face = "bold")
+  ,axis.text.y = element_text(angle = 0, size = 14)
+  ,axis.text.x = element_text(angle = 0, size = 14),
+  #plot.title = element_text(vjust = 0.5, face = "bold", size = 16),
+  plot.caption = element_text(angle = 0, size = 12, face = "italic"),
+  axis.title.x = element_text(size = 16),
+  axis.title.y = element_text(size = 16),
+  #axis.line.y = element_line(colour = "black",inherit.blank = FALSE),
+  panel.grid.major.y = element_blank(),
+  panel.grid.major.x = element_line(color = "grey"),
+  panel.grid.minor.x = element_blank())+
+  geom_hline(yintercept = 0, color = "black")+
+  labs(x= "Pain Symptom of Household members", y="n", fill="", caption = "hhm (household members) who\n had pain symptoms: N=111")+
+  coord_flip()+
+  guides(fill= guide_legend(reverse = TRUE))
+  
+
+```
+
+* Of the `r nrow(sero_final[sero_final$q13_hhm_no_symptoms=="no",])` participants household members who experienced at least one health symptom, majority required medical attention `r paste0("(",round((nrow(sero_final[ sero_final$q13_hhm_no_symptoms!= "yes" & sero_final$q14_hhm_medical_attention=="yes",])*100)/nrow(sero_final[sero_final$q13_hhm_no_symptoms=="no",]),1), "%)")` and the least required to be hospitalized `r paste0("(",round((nrow(sero_final[sero_final$q13_hhm_no_symptoms!= "yes" & sero_final$q14_hhm_hospitalized=="yes",])*100)/nrow(sero_final[sero_final$q13_hhm_no_symptoms=="no",]),1), "%)")`.
+
+```{r, fig.width=10, fig.height=6}
+
+  sero_final%>%
+  dplyr::select(q14_hhm_medical_attention, q14_hhm_miss_work, q14_hhm_hospitalized)%>%
+  pivot_longer(cols = everything(),
+               names_to = "cause",
+               values_to = "value")%>%
+  mutate(n = 1)%>%
+  mutate(cause = str_replace(cause, "q14_", ""),
+         cause = ifelse(cause == "hhm_medical_attention", "seek medical attention",
+                 ifelse(cause == "hhm_miss_work", "miss work", "be hospitalized")),
+         value = as.character(value))%>%
+  filter(value != "NIU (not in universe)", value != "missing:impute", value=="yes")%>%
+  group_by(cause, value)%>%
+  summarise(n = sum(n), .groups = 'drop')%>%
+  mutate(p = round((n/nrow(sero_final[sero_final$q13_hhm_no_symptoms=="no" ,]))*100,1))%>%
+  arrange(n)%>%
+  mutate(cause = as_factor(cause))%>%
+  ggplot(aes(fill=value, y = n, x=cause))+
+  geom_bar(position = "dodge", stat = "identity", width=0.8)+
+  geom_text(aes(label= paste0(n," (", p,"%)" )), vjust=0.4, hjust=-0.1,
+            position = position_dodge(0.9), color="black", size=4.5)+
+  #scale_y_continuous(n.breaks = 5)+
+  scale_y_continuous(breaks = seq(0, 250, by = 50), limits = c(0, 250))+
+  theme_minimal()+
+  theme(legend.position="none",
+  legend.text = element_text(size = 12),
+  legend.title = element_text(size = 15, color = "red", face = "bold")
+  ,axis.text.y = element_text(angle = 0, size = 14)
+  ,axis.text.x = element_text(angle = 0, size = 14),
+  #plot.title = element_text(vjust = 0.5, face = "bold", size = 16),
+  plot.caption = element_text(angle = 0, size = 12, face = "italic"),
+  axis.title.x = element_text(size = 16),
+  axis.title.y = element_text(size = 16),
+  #axis.line.y = element_line(colour = "black",inherit.blank = FALSE),
+  panel.grid.major.y = element_blank(),
+  panel.grid.major.x = element_line(color = "grey"),
+  panel.grid.minor.x = element_blank())+
+  geom_hline(yintercept = 0, color = "black")+
+  labs(x= "Did any of these symptoms require\n household members to...", y="n", fill="", caption = "Household members who\n had symptoms: N=283")+
+  coord_flip()+
+  guides(fill= guide_legend(reverse = TRUE))
+  
+
+```
+
+
+## COVID-19 Contact and Risk
+
+* Majority of participants stated they had no contact with anyone with suspected or confirmed COVID-19 `r paste0("(",round((nrow(sero_final[sero_final$q10_covid_contact=="no",])*100)/nrow(sero_final),1), "%)")` and the least proportion rated their own risk of getting infected with the virus that causes COVID-19 as **nil** `r paste0("(",round((nrow(sero_final[sero_final$q16_own_risk=="nil",])*100)/nrow(sero_final),1), "%)")`.
+
+```{r covid-19 Contact and Risk}
+
+
+ tbl_summary(sero_final_analysis%>%dplyr::select(q10_covid_contact, q16_own_risk), 
+                      type = list(
+                        all_dichotomous() ~ "categorical")
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**COVID-19**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  as_flex_table() #covert gtsummary object to knitrkable object. also use as_flex_table() to maintain identation, footnotes, spanning headers
+
+
+```
+
+## COVID-19 Prevention services
+
+```{r covid-19 Prevention services}
+
+
+ tbl_summary(sero_final_analysis%>%dplyr::select(q16_info_edu, q16_hand_wash, q16_face_masks, q16_sanitizers), 
+                      type = list(
+                        all_dichotomous() ~ "categorical")
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**COVID-19**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  as_flex_table() #covert gtsummary object to knitrkable object. also use as_flex_table() to maintain identation, footnotes, spanning headers
+
+
+```
+
+
+```{r covid-19 Prevention services plotly, fig.width=10, fig.height=6, fig.show='hide', eval=FALSE}
+
+     #likert
+
+      sero_final%>%
+      dplyr::select(q16_info_edu, q16_hand_wash, q16_face_masks, q16_sanitizers)%>%
+  pivot_longer(cols = everything(),
+               names_to = "prevention",
+               values_to = "value")%>%
+  mutate(n = 1)%>%
+  pivot_wider(names_from = c(value),
+              values_from = c(n),
+              values_fn = sum, values_fill = 0)%>%
+  clean_names()%>%
+  mutate(prevention = ifelse(prevention == "q16_info_edu", "Information & Education",
+                      ifelse(prevention == "q16_hand_wash", "Hand washing (water & soap)", 
+                      ifelse(prevention == "q16_face_masks", "Face masks", "Hand Sanitizers"))))%>%
+  arrange(highly)%>%
+  mutate(prevention = as_factor(prevention))%>%
+  plot_ly(x = ~highly , y = ~prevention,
+        name = "higly accessible",
+  type = "bar",
+  orientation = 'h',
+  text = ~round(highly*100/nrow(sero_final),1),
+  texttemplate = '%{x} (%{text}%)', #'%{y:.2s}' '%{y:.2f}
+  #texttemplate = '%{x} <br>(%{text}%)', #'%{y:.2s}' '%{y:.2f}
+  textposition = 'auto',
+        marker = list(color = 'rgba(38, 24, 74, 0.8)',
+                      line = list(color = 'rgb(248, 248, 249)', width = 1))
+  )%>% 
+  add_trace(x = ~moderately,
+        name = "moderately accessible",
+        text = ~round(moderately*100/nrow(sero_final),1),
+            marker = list(color = 'rgba(71, 58, 131, 0.8)'))%>% 
+  add_trace(x = ~rarely,
+        name = "rarely accessible",
+        text = ~round(rarely*100/nrow(sero_final),1),
+            marker = list(color = 'rgba(122, 120, 168, 0.8)')) %>%
+  add_trace(x = ~not_accessible,
+        name = "not accessible",
+        text = ~round(not_accessible*100/nrow(sero_final),1),
+            marker = list(color = 'rgba(164, 163, 204, 0.85)'))%>%
+  layout(title = list(text="<b> How accessible are COVID-19 prevention services in this community? <b>",
+                      y = 0.8, x = 0.5, xanchor = 'center', yanchor =  'top'),
+                      xaxis = list(title = "",
+                      showgrid = FALSE,
+                      showline = FALSE,
+                      showticklabels = FALSE,
+                      zeroline = FALSE,
+                      range = list(0, 1050),
+                      domain = c(0.15, 1)),
+         yaxis = list(title = "",
+                      showgrid = FALSE,
+                      showline = FALSE,
+                      showticklabels = TRUE,
+                      zeroline = FALSE),
+          barmode = 'stack',
+         margin = list(l = 120, r = 10, t = 140, b = 80),
+         showlegend = TRUE,
+         legend = list(orientation = "h",   # show entries horizontally
+                     xanchor = "center",  # use center of legend as anchor
+                     x = 0.5))
+
+
+```
+
+* More than half of the participants highly rated Face masks `r paste0("(",round((nrow(sero_final[sero_final$q16_face_masks=="highly",])*100)/nrow(sero_final),1), "%)")` and Handwashing (water and soap) `r paste0("(",round((nrow(sero_final[sero_final$q16_hand_wash=="highly",])*100)/nrow(sero_final),1), "%)")` as accessible COVID-19 prevention services.
+
+* Hand sanitizers had the highest rating of rarely accessible `r paste0("(",round((nrow(sero_final[sero_final$q16_sanitizers=="rarely",])*100)/nrow(sero_final),1), "%)")`  and not accessible `r paste0("(",round((nrow(sero_final[sero_final$q16_sanitizers=="not accessible",])*100)/nrow(sero_final),1), "%)")` COVID-19 prevention service compared to the other prevention services. 
+
+```{r covid-19 Prevention services ggplot, fig.width=10, fig.height=6}
+
+     
+     sero_final%>%
+      dplyr::select(q16_info_edu, q16_hand_wash, q16_face_masks, q16_sanitizers)%>%
+  pivot_longer(cols = everything(),
+               names_to = "prevention",
+               values_to = "value")%>%
+  mutate(n = 1)%>%
+  group_by(prevention, value)%>%
+  summarise(n = sum(n), .groups = 'drop')%>%
+  mutate(p = round((n/nrow(sero_final))*100,1))%>%
+  mutate(prevention = ifelse(prevention == "q16_info_edu", "Information & Education",
+                      ifelse(prevention == "q16_hand_wash", "Hand washing (water & soap)", 
+                      ifelse(prevention == "q16_face_masks", "Face masks", "Hand Sanitizers"))))%>%
+  mutate(prevention = fct_rev(as_factor(prevention)),
+         value = fct_rev(as_factor(value)))%>%
+  ggplot(aes(fill=value, y = n, x=prevention))+
+  geom_bar(position = "fill", stat = "identity", width=0.8)+
+  geom_text(aes(label= paste0(n," (", p,"%)" )),
+            position = position_fill(vjust=0.5), color="black", angle = 45, size=3.9, fontface = "bold")+
+  scale_y_continuous(labels = scales::percent)+
+  theme_minimal()+
+  theme(legend.position="top",
+  legend.text = element_text(size = 14),
+  legend.title = element_text(size = 14, color = "red", face = "bold")
+  ,axis.text.y = element_text(angle = 0, size = 14)
+  ,axis.text.x = element_blank(),
+  #plot.title = element_text(vjust = 0.5, face = "bold", size = 16),
+  plot.caption = element_text(angle = 0, size = 12, face = "italic"),
+  axis.title.x = element_text(size = 16),
+  axis.title.y = element_text(size = 16),
+  #axis.line.y = element_line(colour = "black",inherit.blank = FALSE),
+  panel.grid.major.y = element_blank(),
+  panel.grid.major.x = element_blank(),
+  panel.grid.minor.x = element_blank())+
+  geom_hline(yintercept = 0, color = "black")+
+  labs(x= "How accessible are COVID-19 prevention\n services in this community?", y="", fill="",
+       caption = "N=870")+
+  coord_flip()+
+  guides(fill= guide_legend(reverse = TRUE))
+    
+
+```
+
+
+## COVID-19 vaccine and Job loss
+
+* The lowest proportion of the participants had received the covid-19 vaccine `r paste0("(",round((nrow(sero_final[sero_final$covid_vaccine=="yes",])*100)/nrow(sero_final),1), "%)")`.
+
+* Majority of the participants and their household members `r paste0("(",round((nrow(sero_final[sero_final$q19_lost_job=="no",])*100)/nrow(sero_final),1), "%)")` had not lost a job or source livelihood in the last 6 months due to covid-19.
+
+
+```{r covid-19 Covid vaccine and Job loss}
+
+
+ tbl_summary(sero_final_analysis%>%dplyr::select(covid_vaccine, q19_lost_job), 
+                      type = list(
+                        all_dichotomous() ~ "categorical")
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**COVID-19**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  as_flex_table() #covert gtsummary object to knitrkable object. also use as_flex_table() to maintain identation, footnotes, spanning headers
+
+
+```
+
+## Accessibility to Healthcare
+
+* During covid-19,majority of the participants `r paste0("(",round((nrow(sero_final[sero_final$q20_healthcare_access=="no",])*100)/nrow(sero_final),1), "%)")` were able to access and use healthcare services they would normally have access.
+
+
+```{r covid-19 Accessibility to Healthcare}
+
+
+ tbl_summary(sero_final_analysis%>%dplyr::select(q20_healthcare_access, q20_services_missed), 
+                      type = list(
+                        all_dichotomous() ~ "categorical")
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**COVID-19**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  as_flex_table() #covert gtsummary object to knitrkable object. also use as_flex_table() to maintain identation, footnotes, spanning headers
+
+
+```
+
+* Of the `r nrow(sero_final[sero_final$q20_healthcare_access=="yes",])` participants unable to access and use healthcare services they would normally have access during covid 19, majority `r paste0("(",round((nrow(sero_final[ sero_final$q20_services_missed == "consultation/treatment for chronic conditions e.g diabetes, hypertension,stroke care, sickle cell disease, etc" ,])*100)/nrow(sero_final[sero_final$q20_services_missed !="NIU (not in universe)" & sero_final$q20_services_missed !="missing:impute",]),1), "%)")` missed services in consultation/treatment for chronic conditions e.g diabetes, hypertension,stroke care, sickle cell disease, etc .
+
+```{r covid 19 access to health services, fig.width=10, fig.height=6}
+
+
+  sero_final%>%
+  dplyr::select(q20_services_missed)%>%
+  mutate(n = 1,
+         q20_services_missed = as.character(q20_services_missed))%>%
+  filter(q20_services_missed !="NIU (not in universe)" , q20_services_missed != "missing:impute")%>%
+  mutate(q20_services_missed = ifelse(q20_services_missed == "consultation/treatment for chronic conditions e.g diabetes, hypertension,stroke care, sickle cell disease, etc", "consultation/treatment for chronic\n conditions e.g diabetes, hypertension,\n stroke care, sickle cell disease, etc",
+                                      q20_services_missed))%>%
+  group_by(q20_services_missed)%>%
+  summarise(n = sum(n), .groups = 'drop')%>%
+  mutate(p = round((n/nrow(sero_final[sero_final$q20_services_missed !="NIU (not in universe)" & 
+                                        sero_final$q20_services_missed !="missing:impute",]))*100,1))%>%
+  arrange(n)%>%
+  mutate(q20_services_missed = as_factor(q20_services_missed))%>%
+  ggplot(aes(y = n, x=q20_services_missed, fill = q20_services_missed ))+
+  geom_bar(position = "dodge", stat = "identity", width=0.8)+
+  geom_text(aes(label= paste0(n," (", p,"%)" )), vjust=0.4, hjust=-0.1,
+            position = position_dodge(0.9), color="black", size=4.5)+
+  #scale_y_continuous(n.breaks = 5)+
+  scale_y_continuous(breaks = seq(0, 100, by = 20), limits = c(0, 115))+
+  theme_minimal()+
+  theme(legend.position="none",
+  legend.text = element_text(size = 12),
+  legend.title = element_text(size = 15, color = "red", face = "bold")
+  ,axis.text.y = element_text(angle = 0, size = 14)
+  ,axis.text.x = element_text(angle = 0, size = 14),
+  #plot.title = element_text(vjust = 0.5, face = "bold", size = 16),
+  plot.caption = element_text(angle = 0, size = 12, face = "italic"),
+  axis.title.x = element_text(size = 16),
+  axis.title.y = element_text(size = 16),
+  #axis.line.y = element_line(colour = "black",inherit.blank = FALSE),
+  panel.grid.major.y = element_blank(),
+  panel.grid.major.x = element_line(color = "grey"),
+  panel.grid.minor.x = element_blank())+
+  geom_hline(yintercept = 0, color = "black")+
+  labs(x= "Services missed you would normally\n have access to:", y="n", fill="", caption = "2 missing impute: N=105")+
+  coord_flip()+
+  guides(fill= guide_legend(reverse = TRUE))
+  
+
+```
+
+
+## Socio-economic status of participants
+
+* `r paste0("(",round((nrow(sero_final[sero_final$q17_none=="no",])*100)/nrow(sero_final[sero_final$q17_none!="missing:impute",]),1), "%)")` of the participants had at least one household item. Majority of the participants households had electricity `r paste0("(",round((nrow(sero_final[sero_final$q17_electricity=="yes",])*100)/nrow(sero_final[sero_final$q17_electricity!="missing:impute",]),1), "%)")` followed by television `r paste0("(",round((nrow(sero_final[sero_final$q17_television=="yes",])*100)/nrow(sero_final[sero_final$q17_television!="missing:impute",]),1), "%)")`. 
+
+* The biggest proportion of households had cement floor `r paste0("(",round((nrow(sero_final[sero_final$q17_floor_type=="cement",])*100)/ nrow(sero_final),1), "%)")`, mabati external walls `r paste0("(",round((nrow(sero_final[sero_final$q17_wall_type=="mabati",])*100)/ nrow(sero_final),1), "%)")`, iron sheet roofs `r paste0("(",round((nrow(sero_final[sero_final$q17_roof_type=="iron sheet",])*100)/nrow(sero_final),1), "%)")` and cooked using charcoal `r paste0("(",round((nrow(sero_final[sero_final$q17_fuel_type=="charcoal",]) *100)/nrow(sero_final),1), "%)")` with the smallest proportion having no toilet facility `r paste0("(",round((nrow(sero_final[sero_final$q17_toilet_type=="no facility/bush/field",])*100)/nrow(sero_final),1), "%)")`.
+
+```{r socio economic }
+
+ tbl_summary(sero_final_analysis%>%dplyr::select(q17_electricity:q17_none,
+                                        q17_floor_type, q17_wall_type, q17_roof_type, q17_fuel_type, q17_toilet_type), 
+                      type = list(
+                        all_dichotomous() ~ "categorical")
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Socio-economic status of participants**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  as_flex_table() #covert gtsummary object to knitrkable object. also use as_flex_table() to maintain identation, footnotes, spanning headers
+
+
+```
+
+
+```{r socio economic ggplot, fig.width=10, fig.height=6}
+
+
+  sero_final%>%
+  dplyr::select(q17_electricity:q17_none)%>%
+  pivot_longer(cols = everything(),
+               names_to = "household",
+               values_to = "value")%>%
+  mutate(n = 1)%>%
+  mutate(household = str_replace(household, "q17_", ""),
+         value = as.character(value),
+         household = gsub("_", " ", household))%>%
+  filter(value !="missing:impute", value == "yes")%>%
+  group_by(household, value)%>%
+  summarise(n = sum(n), .groups = 'drop')%>%
+  mutate(p = round((n/nrow(sero_final[sero_final$q17_electricity !="missing:impute",]))*100,1))%>%
+  arrange(desc(value), n)%>%
+  mutate(household = as_factor(household),
+         value = as.factor(value))%>%
+  ggplot(aes(fill=value, y = n, x=household))+
+  geom_bar(position = "dodge", stat = "identity", width=0.8)+
+  geom_text(aes(label= paste0(n," (", p,"%)" )), vjust=0.4, hjust=-0.1,
+            position = position_dodge(0.9), color="black", size=4.5)+
+  #scale_y_continuous(n.breaks = 5)+
+  scale_y_continuous(breaks = seq(0, 800, by = 100), limits = c(0, 900))+
+  theme_minimal()+
+  theme(legend.position="none",
+  legend.text = element_text(size = 12),
+  legend.title = element_text(size = 15, color = "red", face = "bold")
+  ,axis.text.y = element_text(angle = 0, size = 14)
+  ,axis.text.x = element_text(angle = 0, size = 14),
+  #plot.title = element_text(vjust = 0.5, face = "bold", size = 16),
+  plot.caption = element_text(angle = 0, size = 12, face = "italic"),
+  axis.title.x = element_text(size = 16),
+  axis.title.y = element_text(size = 16),
+  #axis.line.y = element_line(colour = "black",inherit.blank = FALSE),
+  panel.grid.major.y = element_blank(),
+  panel.grid.major.x = element_line(color = "grey"),
+  panel.grid.minor.x = element_blank())+
+  geom_hline(yintercept = 0, color = "black")+
+  labs(x= "Does your household have:", y="n", fill="", caption = "N=868 (2 missing impute)")+
+  coord_flip()+
+  guides(fill= guide_legend(reverse = TRUE))
+  
+
+```
+
+
+## Migration information
+
+* Majority of the participants households had members who had not left `r paste0("(",round((nrow(sero_final[sero_final$q18_outmigrant_member =="no",])*100)/ nrow(sero_final),1), "%)")` and not joined `r paste0("(",round((nrow(sero_final[sero_final$q18_inmigrant_member =="no",])*100)/ nrow(sero_final),1), "%)")` in the last 6 months.
+
+
+```{r migration information}
+
+
+ tbl_summary(sero_final_analysis%>%dplyr::select(q18_outmigrant_member, q18_inmigrant_member), 
+                      type = list(
+                        all_dichotomous() ~ "categorical")
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Migration information**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  as_flex_table() #covert gtsummary object to knitrkable object. also use as_flex_table() to maintain identation, footnotes, spanning headers
+
+
+```
+
+## Vaccination
+
+* Majority of the participants had a BCG scar `r paste0("(",round((nrow(sero_final[sero_final$q21_bcg_scar =="yes",])*100)/ nrow(sero_final),1), "%)")` to indicate they have been BCG-vaccinated.
+
+```{r vaccination}
+
+
+ tbl_summary(sero_final_analysis%>%dplyr::select(q21_bcg_scar), 
+                      type = list(
+                        all_dichotomous() ~ "categorical")
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Vaccination**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  as_flex_table() #covert gtsummary object to knitrkable object. also use as_flex_table() to maintain identation, footnotes, spanning headers
+
+
+```
+
+
+## Lab Results
+
+* Blood sample was collected from all `r nrow(sero_final[sero_final$q24_sample_collected=="yes",])` participants with the smallest proportion `r paste0("(",round((nrow(sero_final[sero_final$sample_type =="original",])*100)/ nrow(sero_final),1), "%)")` being original sample type and majority `r paste0("(",round((nrow(sero_final[sero_final$q23_sampling =="yes",])*100)/ nrow(sero_final),1), "%)")` willing to be sampled again to see what happens to test results.
+
+* The top 3 participants blood groups by proportion (in descending order) were O+ `r paste0("(",round((nrow(sero_final[sero_final$blood_group =="O+",])*100)/ nrow(sero_final),1), "%)")` , A+ `r paste0("(",round((nrow(sero_final[sero_final$blood_group =="A+",])*100)/ nrow(sero_final),1), "%)")` and B+ `r paste0("(",round((nrow(sero_final[sero_final$blood_group =="B+",])*100)/ nrow(sero_final),1), "%)")`. No participant had AB- blood group.
+
+
+```{r lab results }
+
+
+ tbl_summary(sero_final_analysis%>%dplyr::select(q24_sample_collected, q23_sampling, sample_type, blood_group), 
+                      type = list(
+                        all_dichotomous() ~ "categorical")
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Lab results**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  as_flex_table() #covert gtsummary object to knitrkable object. also use as_flex_table() to maintain identation, footnotes, spanning headers
+
+
+```
+
+
+# **Inferential statistics**
+
+## outcome variable (sero positive)
+
+### sociodemographics of participants by outcome variable
+
+* There was no significant difference in proportion between sero positive in categories of location (p=0.276), gender (p=0.897) and religion (p=0.278) groups.
+
+* Participants with no formal education (27.0%) had significantly (p=0.003) lower proportion of sero positive compared to those with primary (39.8%), secondary (43.5%) and tertiary (43.2%) education. 
+
+* Participants with sero positive had significant older age (35.09 $\pm$ 21.43 years, p=<0.001) compared to those of sero negative (27.00 $\pm$ 21.43 years).
+
+```{r sociodemographics of participants by outcome variable}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(replace, q9_location, q8_gender, q6_education_level, age_group_new, q7_age_new, q6_religion, spikepos) # make dataset with variables to summarize
+                ,
+              by = spikepos,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                         ,all_continuous() ~ "continuous2"
+                        )
+                      , statistic = all_continuous() ~ c(
+                                      "{mean} ({sd})", 
+                                      "{median} ({p25}, {p75})", 
+                                      "{min}, {max}")
+                       , digits = all_continuous() ~ 2
+                      ,percent = "row" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Socio-demographics of participants**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Likelihood sero positive**")%>%
+  modify_footnote(
+    all_stat_cols() ~ "Mean (SD); Median (IQR); Range; Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object. 
+
+
+```
+
+
+### Health symptoms of participants by outcome variable
+
+* Participants with history of fever/chills (32.9%) had significantly (p=0.047) lower proportion of sero positive compared to those with no history of fever/chills (40.1%). 
+
+* Participants with history of diarrhoea (27.9%) had significantly (p=0.024) lower proportion of sero positive compared to those with no history of diarrhoea (39.3%). 
+
+* Participants with history of cough (34.2%) had significantly (p=0.032) lower proportion of sero positive compared to those with no history of cough (41.3%). 
+
+* Participants with history of runny nose (32.6%) had significantly (p=0.010) lower proportion of sero positive compared to those with no history of runny nose (41.3%).
+
+* Participants with history of at least one symptom who missed work (44.4%) had significantly (p=0.010) higher proportion of sero positive compared to those with history of at least one symptom who did not miss work (34.4%).
+
+
+```{r health symptoms of participants by outcome variable}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(q11_no_symptoms,q11_fever:q11_other_symptom, q11_muscular_pain:q11_joint_pain,
+                                                  q11_muscular_pain_overall:q11_joint_pain_overall,
+                                        q12_medical_attention, q12_miss_work, q12_hospitalized, spikepos) # make dataset with variables to summarize
+                ,
+              by = spikepos,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        )
+                      ,percent = "row" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Health symptoms of participants**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Likelihood sero positive**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object.
+
+```
+
+### Health symptoms of household members by outcome variable
+
+* Participants household members with history of being sick (32.6%) had significantly (p=0.022) lower proportion of sero positive compared to those participants household members with no history of being sick (40.7%).
+
+* Participants household members with history of having at least one symptom (32.3%) had significantly (p=0.016) lower proportion of sero positive compared to those participants household members with no history of having at least one symptom (40.8%).
+
+* Participants household members with history of fever/chills (25.7%) had significantly (p=0.001) lower proportion of sero positive compared to those participants household members with no history of fever/chills (40.4%). 
+
+* Participants household members with history of runny nose (27.9%) had significantly (p=0.013) lower proportion of sero positive compared to those with participants household members no history of runny nose (39.7%).
+
+
+```{r Health symptoms of household members by outcome variable}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(q13_hhmember_sick, q15_hhm_died, q13_hhm_no_symptoms,
+                                        q13_hhm_fever:q13_hhm_other_symptom, 
+                               q13_hhm_muscular_pain:q13_hhm_joint_pain,
+                               q13_hhm_muscular_pain_overall:q13_hhm_joint_pain_overall,
+                                        q14_hhm_medical_attention, q14_hhm_miss_work, q14_hhm_hospitalized, spikepos) # make dataset with variables to summarize
+                ,
+              by = spikepos,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        )
+                      ,percent = "row" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Health symptoms of household members**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Likelihood sero positive**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object.
+
+```
+
+
+### COVID-19 by outcome variable
+
+* Participants unable to access and use healthcare services they would normally have access (27.1%) had significantly (p=0.013) lower proportion of sero positive compared to those able to access and use healthcare services they would normally have access (39.6%).
+
+
+```{r COVID-19 by outcome variable}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(q10_covid_contact, q16_own_risk, q16_info_edu, q16_hand_wash, q16_face_masks, q16_sanitizers,
+                                covid_vaccine, q19_lost_job, q20_healthcare_access, spikepos) # make dataset with variables to summarize
+                ,
+              by = spikepos,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        )
+                      ,percent = "row" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**COVID-19**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Likelihood sero positive**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object.
+
+```
+
+### Socio-economic status of participants by outcome variable
+
+* Participants dwelling in household with cement floor (39.9%) had significantly (p=0.042) higher proportion of sero positive compared to those dwelling in household with earth/sand (31.2%) and other (16.7%) floor material.
+
+
+```{r Socio-economic status of participants by outcome variable}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(q17_electricity:q17_none, 
+                                         q17_floor_type, q17_wall_type, q17_roof_type, q17_fuel_type, q17_toilet_type, spikepos) # make dataset with variables to summarize
+    ,
+              by = spikepos,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        )
+                      ,percent = "row" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Socio-economic status**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Likelihood sero positive**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object.
+
+```
+
+
+### Migration, vaccination and blood group by outcome variable
+
+* Participants who have a BCG scar (36.3%) had significantly (p=0.012) lower proportion of sero positive compared to those who did not have a BCG scar (47.0%).
+
+
+```{r migration vaccination and blood group by outcome variable}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(q18_outmigrant_member, q18_inmigrant_member, q21_bcg_scar, q23_sampling, sample_type, blood_group, spikepos) # make dataset with variables to summarize
+    ,
+              by = spikepos,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        )
+                      ,percent = "row" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Migration information/Vaccination/Lab results**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+         ,test.args = c(blood_group) ~ list(simulate.p.value=TRUE)
+        ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Likelihood sero positive**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object.
+
+```
+
+## Location
+
+### Sociodemographics of participants by location
+
+```{r Sociodemographics of participants by location}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(spikepos, replace, q9_location, q8_gender, q6_education_level, age_group_new, q7_age_new, q6_religion) # make dataset with variables to summarize
+                ,
+              by = q9_location,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                         ,all_continuous() ~ "continuous2"
+                        )
+                      , statistic = all_continuous() ~ c(
+                                      "{mean} ({sd})", 
+                                      "{median} ({p25}, {p75})", 
+                                      "{min}, {max}")
+                       , digits = all_continuous() ~ 2
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Socio-demographics of participants**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ,test.args = c(q6_religion) ~ list(simulate.p.value=TRUE)) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  #add_overall() %>%
+  #add_difference() %>% #add column for difference between two group, confidence interval, and p-value
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Location**")%>%
+  #modify_caption("**Table 1. Patient Characteristics**")%>%
+  modify_footnote(
+    all_stat_cols() ~ "Mean (SD); Median (IQR); Range; Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object. 
+
+```
+
+### Health symptoms of participants by location
+
+```{r health symptoms of participants by location}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(q11_no_symptoms,q11_fever:q11_other_symptom, q11_muscular_pain:q11_joint_pain,
+                                                  q11_muscular_pain_overall:q11_joint_pain_overall,
+                                        q12_medical_attention, q12_miss_work, q12_hospitalized, q9_location) # make dataset with variables to summarize 
+                ,
+              by = q9_location,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        )
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Health symptoms of participants**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Location**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object.
+
+```
+
+### Health symptoms of household members by location
+
+```{r Health symptoms of household members by location}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(q13_hhmember_sick, q15_hhm_died, q13_hhm_no_symptoms,
+                                        q13_hhm_fever:q13_hhm_other_symptom, 
+                               q13_hhm_muscular_pain:q13_hhm_joint_pain,
+                               q13_hhm_muscular_pain_overall:q13_hhm_joint_pain_overall,
+                                        q14_hhm_medical_attention, q14_hhm_miss_work, q14_hhm_hospitalized, q9_location) # make dataset with variables to summarize
+                ,
+              by = q9_location,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        )
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Health symptoms of household members**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Location**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object.
+
+```
+
+
+### COVID-19 by location
+
+```{r COVID-19 by location}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(q10_covid_contact, q16_own_risk, q16_info_edu, q16_hand_wash, q16_face_masks, q16_sanitizers,
+                                covid_vaccine, q19_lost_job, q20_healthcare_access, q9_location) # make dataset with variables to summarize
+    ,
+              by = q9_location,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        )
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**COVID-19**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Location**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object.
+
+```
+
+### Socio-economic status of participants by location
+
+```{r Socio-economic status of participants by location}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(q17_electricity:q17_none, 
+                                         q17_floor_type, q17_wall_type, q17_roof_type, q17_fuel_type, q17_toilet_type, q9_location) # make dataset with variables to summarize
+    ,
+              by = q9_location,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        )
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Socio-economic status**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ,test.args = c(q17_fuel_type) ~ list(simulate.p.value=TRUE)) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Location**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object.
+
+```
+
+
+### Migration, vaccination and blood group by location
+
+```{r migration vaccination and blood group by location}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(q18_outmigrant_member, q18_inmigrant_member, q21_bcg_scar, q23_sampling, sample_type, blood_group, q9_location) # make dataset with variables to summarize
+    ,
+              by = q9_location,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        )
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Migration information/Vaccination/Lab results**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+         ,test.args = c(blood_group) ~ list(simulate.p.value=TRUE)
+        ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Location**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object.
+
+```
+
+
+## Gender
+
+### Sociodemographics of participants by gender
+
+```{r Sociodemographics of participants by gender}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(spikepos, replace, q9_location, q8_gender, q6_education_level, age_group_new, q7_age_new, q6_religion) # make dataset with variables to summarize
+                ,
+              by = q8_gender,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                         ,all_continuous() ~ "continuous2"
+                        )
+                      , statistic = all_continuous() ~ c(
+                                      "{mean} ({sd})", 
+                                      "{median} ({p25}, {p75})", 
+                                      "{min}, {max}")
+                       , digits = all_continuous() ~ 2
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Socio-demographics of participants**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ,test.args = c(q6_religion) ~ list(simulate.p.value=TRUE)) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  #add_overall() %>%
+  #add_difference() %>% #add column for difference between two group, confidence interval, and p-value
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Gender**")%>%
+  #modify_caption("**Table 1. Patient Characteristics**")%>%
+  modify_footnote(
+    all_stat_cols() ~ "Mean (SD); Median (IQR); Range; Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object. 
+
+```
+
+### Health symptoms of participants by gender
+
+```{r health symptoms of participants by gender}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(q11_no_symptoms,q11_fever:q11_other_symptom, q11_muscular_pain:q11_joint_pain,
+                                                  q11_muscular_pain_overall:q11_joint_pain_overall,
+                                        q12_medical_attention, q12_miss_work, q12_hospitalized, q8_gender) # make dataset with variables to summarize 
+                ,
+              by = q8_gender,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        )
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Health symptoms of participants**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Gender**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object.
+
+```
+
+### Health symptoms of household members by gender
+
+```{r Health symptoms of household members by gender}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(q13_hhmember_sick, q15_hhm_died, q13_hhm_no_symptoms,
+                                        q13_hhm_fever:q13_hhm_other_symptom, 
+                               q13_hhm_muscular_pain:q13_hhm_joint_pain,
+                               q13_hhm_muscular_pain_overall:q13_hhm_joint_pain_overall,
+                                        q14_hhm_medical_attention, q14_hhm_miss_work, q14_hhm_hospitalized, q8_gender) # make dataset with variables to summarize
+                ,
+              by = q8_gender,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        )
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Health symptoms of household members**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Gender**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object.
+
+```
+
+
+### COVID-19 by gender
+
+```{r COVID-19 by gender}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(q10_covid_contact, q16_own_risk, q16_info_edu, q16_hand_wash, q16_face_masks, q16_sanitizers,
+                                covid_vaccine, q19_lost_job, q20_healthcare_access, q8_gender) # make dataset with variables to summarize
+    ,
+              by = q8_gender,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        )
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**COVID-19**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Gender**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object.
+
+```
+
+### Socio-economic status of participants by gender
+
+```{r Socio-economic status of participants by gender}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(q17_electricity:q17_none, 
+                                         q17_floor_type, q17_wall_type, q17_roof_type, q17_fuel_type, q17_toilet_type, q8_gender) # make dataset with variables to summarize
+    ,
+              by = q8_gender,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        )
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Socio-economic status**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Gender**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object.
+
+```
+
+
+### Migration, vaccination and blood group by gender
+
+```{r migration vaccination and blood group by gender}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(q18_outmigrant_member, q18_inmigrant_member, q21_bcg_scar, q23_sampling, sample_type, blood_group, q8_gender) # make dataset with variables to summarize
+    ,
+              by = q8_gender,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        )
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Migration information/Vaccination/Lab results**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+         ,test.args = c(blood_group) ~ list(simulate.p.value=TRUE)
+        ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Gender**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object.
+
+```
+
+
+## Education level
+
+### Sociodemographics of participants by education level
+
+```{r Sociodemographics of participants by education level}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(spikepos, replace, q9_location, q8_gender, q6_education_level, age_group_new, q7_age_new, q6_religion) # make dataset with variables to summarize
+                ,
+              by = q6_education_level,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                         ,all_continuous() ~ "continuous2"
+                        )
+                      , statistic = all_continuous() ~ c(
+                                      "{mean} ({sd})", 
+                                      "{median} ({p25}, {p75})", 
+                                      "{min}, {max}")
+                       , digits = all_continuous() ~ 2
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Socio-demographics of participants**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ,test.args = c(q6_religion) ~ list(simulate.p.value=TRUE)) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  #add_overall() %>%
+  #add_difference() %>% #add column for difference between two group, confidence interval, and p-value
+  modify_spanning_header(c("stat_1", "stat_2", "stat_3", "stat_4") ~ "**Education level**")  %>%
+  #modify_caption("**Table 1. Patient Characteristics**")%>%
+  modify_footnote(
+    all_stat_cols() ~ "Mean (SD); Median (IQR); Range; Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object. 
+
+```
+
+### Health symptoms of participants by education level
+
+```{r health symptoms of participants by education level}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(q11_no_symptoms,q11_fever:q11_other_symptom, q11_muscular_pain:q11_joint_pain,
+                                                  q11_muscular_pain_overall:q11_joint_pain_overall,
+                                        q12_medical_attention, q12_miss_work, q12_hospitalized, q6_education_level) # make dataset with variables to summarize 
+                ,
+              by = q6_education_level,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        )
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Health symptoms of participants**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2", "stat_3", "stat_4") ~ "**Education level**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object.
+
+```
+
+### Health symptoms of household members by education level
+
+```{r Health symptoms of household members by education level}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(q13_hhmember_sick, q15_hhm_died, q13_hhm_no_symptoms,
+                                        q13_hhm_fever:q13_hhm_other_symptom, 
+                               q13_hhm_muscular_pain:q13_hhm_joint_pain,
+                               q13_hhm_muscular_pain_overall:q13_hhm_joint_pain_overall,
+                                        q14_hhm_medical_attention, q14_hhm_miss_work, q14_hhm_hospitalized, q6_education_level) # make dataset with variables to summarize
+                ,
+              by = q6_education_level,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        )
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Health symptoms of household members**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2", "stat_3", "stat_4") ~ "**Education level**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object.
+
+```
+
+
+### COVID-19 by education level
+
+```{r COVID-19 by education level}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(q10_covid_contact, q16_own_risk, q16_info_edu, q16_hand_wash, q16_face_masks, q16_sanitizers,
+                                covid_vaccine, q19_lost_job, q20_healthcare_access, q6_education_level) # make dataset with variables to summarize
+                ,
+              by = q6_education_level,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        )
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**COVID-19**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ,test.args = c(q10_covid_contact, q16_info_edu, q16_hand_wash, q16_face_masks, q19_lost_job) ~ list(simulate.p.value=TRUE)
+        ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2", "stat_3", "stat_4") ~ "**Education level**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object.
+
+```
+
+### Socio-economic status of participants by education level
+
+```{r Socio-economic status of participants by education level}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(q17_electricity:q17_none, 
+                                         q17_floor_type, q17_wall_type, q17_roof_type, q17_fuel_type, q17_toilet_type, q6_education_level) # make dataset with variables to summarize
+    ,
+              by = q6_education_level,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        )
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Socio-economic status**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ,test.args = c(q17_floor_type, q17_wall_type, q17_fuel_type, q17_toilet_type) ~ list(simulate.p.value=TRUE)
+        ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2", "stat_3", "stat_4") ~ "**Education level**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object.
+
+```
+
+
+### Migration, vaccination and blood group by education level
+
+```{r migration vaccination and blood group by education level}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(q18_outmigrant_member, q18_inmigrant_member, q21_bcg_scar, q23_sampling, sample_type, blood_group, q6_education_level) # make dataset with variables to summarize
+    ,
+              by = q6_education_level,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        )
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Migration information/Vaccination/Lab results**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ,test.args = c(q18_outmigrant_member, q18_inmigrant_member, blood_group) ~ list(simulate.p.value=TRUE)
+        ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2", "stat_3", "stat_4") ~ "**Education level**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object.
+
+```
+
+
+## Age group
+
+### Sociodemographics of participants by age group
+
+```{r Sociodemographics of participants by age group}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(spikepos, replace, q9_location, q8_gender, q6_education_level, age_group_new, q7_age_new, q6_religion) # make dataset with variables to summarize
+                ,
+              by = age_group_new,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                         ,all_continuous() ~ "continuous2"
+                        )
+                      , statistic = all_continuous() ~ c(
+                                      "{mean} ({sd})", 
+                                      "{median} ({p25}, {p75})", 
+                                      "{min}, {max}")
+                       , digits = all_continuous() ~ 2
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Socio-demographics of participants**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ,test.args = c(q6_religion) ~ list(simulate.p.value=TRUE)) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  #add_overall() %>%
+  #add_difference() %>% #add column for difference between two group, confidence interval, and p-value
+  modify_spanning_header(c("stat_1", "stat_2", "stat_3", "stat_4") ~ "**Age group**")  %>%
+  #modify_caption("**Table 1. Patient Characteristics**")%>%
+  modify_footnote(
+    all_stat_cols() ~ "Mean (SD); Median (IQR); Range; Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object. 
+
+```
+
+### Health symptoms of participants by age group
+
+```{r health symptoms of participants by age group}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(q11_no_symptoms,q11_fever:q11_other_symptom, q11_muscular_pain:q11_joint_pain,
+                                                  q11_muscular_pain_overall:q11_joint_pain_overall,
+                                        q12_medical_attention, q12_miss_work, q12_hospitalized, age_group_new) # make dataset with variables to summarize
+                ,
+              by = age_group_new,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        )
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Health symptoms of participants**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2", "stat_3", "stat_4") ~ "**Age group**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object.
+
+```
+
+### Health symptoms of household members by age group
+
+```{r Health symptoms of household members by age group}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(q13_hhmember_sick, q15_hhm_died, q13_hhm_no_symptoms,
+                                        q13_hhm_fever:q13_hhm_other_symptom, 
+                               q13_hhm_muscular_pain:q13_hhm_joint_pain,
+                               q13_hhm_muscular_pain_overall:q13_hhm_joint_pain_overall,
+                                        q14_hhm_medical_attention, q14_hhm_miss_work, q14_hhm_hospitalized, age_group_new) # make dataset with variables to summarize
+                ,
+              by = age_group_new,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        )
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Health symptoms of household members**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2", "stat_3", "stat_4") ~ "**Age group**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object.
+
+```
+
+
+### COVID-19 by age group
+
+```{r COVID-19 by age group}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(q10_covid_contact, q16_own_risk, q16_info_edu, q16_hand_wash, q16_face_masks, q16_sanitizers,
+                                covid_vaccine, q19_lost_job, q20_healthcare_access, age_group_new) # make dataset with variables to summarize
+    ,
+              by = age_group_new,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        )
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**COVID-19**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ,test.args = c(q10_covid_contact, q16_hand_wash, q16_face_masks, q19_lost_job) ~ list(simulate.p.value=TRUE)
+        ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2", "stat_3", "stat_4") ~ "**Age group**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object.
+
+```
+
+### Socio-economic status of participants by age group
+
+```{r Socio-economic status of participants by age group}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(q17_electricity:q17_none, 
+                                         q17_floor_type, q17_wall_type, q17_roof_type, q17_fuel_type, q17_toilet_type, age_group_new) # make dataset with variables to summarize
+    ,
+              by = age_group_new,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        )
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Socio-economic status**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ,test.args = c(q17_floor_type, q17_wall_type, q17_fuel_type, q17_toilet_type) ~ list(simulate.p.value=TRUE)
+        ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2", "stat_3", "stat_4") ~ "**Age group**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object.
+
+```
+
+
+### Migration, vaccination and blood group by age group
+
+```{r migration vaccination and blood group by age group}
+
+  tbl_summary(sero_final_analysis%>%dplyr::select(q18_outmigrant_member, q18_inmigrant_member, q21_bcg_scar, q23_sampling, sample_type, blood_group, age_group_new) # make dataset with variables to summarize
+    ,
+              by = age_group_new,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        )
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Migration information/Vaccination/Lab results**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
+        ,test.args = c(q18_outmigrant_member, q18_inmigrant_member, blood_group) ~ list(simulate.p.value=TRUE)
+        ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  modify_spanning_header(c("stat_1", "stat_2", "stat_3", "stat_4") ~ "**Age group**")  %>%
+  modify_footnote(
+    all_stat_cols() ~ "Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object.
+
+```
+
