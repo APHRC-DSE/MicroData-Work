@@ -470,7 +470,7 @@ Descriptive summary statistics in form of frequency, percentage, mean and standa
 
 Chi-square test and Fisher's exact test where appropriate were used for categorical data to analyze difference in proportion of socio-demographic, health symptoms, COVID-19, socio-economic, migration, vaccination and lab test variables as a function of outcome (sero positive), location, gender, school level and age group. 
 
-For continous data, Wilcoxon rank sum test was used to examine the comparison of outcome (sero positive), location, gender, school level and age group variables with age. 
+For continous data, Wilcoxon rank sum test and Kruskal-Wallis rank sum test where appropriate was used to examine the comparison of outcome (sero positive), location, gender, school level and age group variables with age. 
 
 The results are presented in narrative and summary tables. Statistical significance was set at p<0.05
 
