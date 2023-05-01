@@ -1,0 +1,674 @@
+---
+title: "sero results data"
+author: "Reinpeter"
+date: "`r Sys.Date()`"
+output:
+  word_document: 
+    fig_width: 12
+    fig_height: 8
+    number_sections: yes
+  pdf_document:
+    fig_width: 12
+    fig_height: 8
+    number_sections: yes
+  html_document:
+    toc: yes
+    toc_depth: 4
+    number_sections: yes
+---
+
+
+```{r setup, results="hide", include=FALSE}
+
+## Set Chunk requirements
+knitr::opts_chunk$set(#include = TRUE,
+                      echo=FALSE, message = FALSE, warning = FALSE)
+
+```
+
+```{r setting working directory, include=FALSE, results = "hide"}
+
+## Setting work directory
+
+setwd(".")
+
+```
+
+
+```{r loading relevant packages, include=FALSE, results = "hide"}
+
+#library we need
+libs_sero_model <- c("caret", "performance", "tidyverse", "knitr", "plotly", "gtsummary", "flextable", "MASS", "rsample",
+                     "glmnet", "bayestestR")
+
+#install missing libraries
+
+inatalled_libs_sero_model <- libs_sero_model  %in% rownames(installed.packages())
+if (any(inatalled_libs_sero_model==F)) {
+  install.packages(libs_sero_model[!inatalled_libs_sero_model])
+}
+
+#load libraries
+
+invisible(lapply(libs_sero_model, library, character.only=T))
+
+set_gtsummary_theme(list(
+  "tbl_summary-fn:percent_fun" = function(x) style_percent(x, digits = 1),
+  "tbl_summary-str:categorical_stat" = "{n} ({p}%)"
+))
+# Setting `Compact` theme
+theme_gtsummary_compact()
+
+```
+
+
+```{r importing saved Rdata files, results="hide", include=FALSE}
+
+#load .Rdata files
+
+sero_model_list <- list.files(path = ".", pattern = "*.RData", full.names = TRUE)
+
+invisible(lapply(sero_model_list, load, .GlobalEnv))
+
+```
+
+
+# **Modelling**
+
+The analysis aims to predict seroprevalence of SARS-CoV-2 antibodies among target populations in Kenya using demographic, socioeconomic and clinical profile of patients.
+
+After exploring the data, the outcome(dependent) variable **sero positive** is binary while the independent (predictor) variables are more than one and are a mixture of categorical and continous data. Hence a binary logistic model will be applied. 
+
+To build the best performing logistic model, We will use all relevant predictor variables and automatically select a reduced number of predictor variables using various algorithms.
+
+```{r removing NA and selecting all relevant variables}
+
+sero_logistic_final <- sero_final_analysis%>%
+  mutate(across(c(spikepos, replace, q11_fever:q11_other_symptom, q13_hhm_no_symptoms, q13_hhmember_sick,
+                  q17_electricity:q17_none, q17_floor_type:q17_fuel_type, q12_hospitalized), ~ fct_rev(.x)))%>%
+  dplyr::select(-c(sample_type, q11_pain, q11_no_symptoms, q11_other_symptom, q23_sampling,
+                   q13_hhm_pain, q13_hhm_no_symptoms, q17_none, age_group_new))%>%
+  drop_na()
+
+
+```
+
+
+```{r splitting data into training and testing, results="hide", include=FALSE}
+
+# Set seed for reproducibility
+set.seed(1111)
+
+# Set up repeated k-fold cross-validation
+train.control <- trainControl(method = "cv", number = 10)
+
+split <- rsample::initial_split(sero_logistic_final, prop = 0.8, strata = spikepos)
+
+train_sero <- training(split)
+  
+test_sero <- testing(split)
+
+```
+
+
+# **logistic regression**
+
+```{r full model, results="hide", include=FALSE}
+
+full_model <- glm(spikepos ~., data = train_sero, family = "binomial")
+
+#summary(full_model)
+
+
+```
+
+
+```{r full model confussion matrix ROC curve}
+
+#model performance metrics
+broom::glance(full_model)
+
+#Fitting with test data
+test_predictions <- test_sero%>%
+  dplyr::select(spikepos)%>%
+  mutate(full_model_prediction = predict(full_model, test_sero, type = "response" #“link”, “response”, “terms”
+        ), 
+        full_model_prediction = as.factor(ifelse(full_model_prediction <0.5, "no", "yes"))
+  )
+
+#Confussion matrix
+
+con_full_model <-caret::confusionMatrix(test_predictions$full_model_prediction, test_sero$spikepos, positive = "yes")
+con_full_model
+
+#package see required to plot ROC curves
+
+roc_full_model <- performance::performance_roc(full_model, new_data = test_sero)
+plot(roc_full_model)
+
+
+auc_full_model <- bayestestR::area_under_curve(roc_full_model$Specificity, roc_full_model$Sensitivity)
+
+auc_full_model
+
+
+```
+
+
+# **Stepwise logistic regression**
+
+## AIC
+
+```{r AIC stepwise regression}
+
+step_model_aic <- full_model%>%
+  MASS::stepAIC(trace = 0, #do not show the step by step process of model selection
+                scale = 0, #estimate of the error variance to be estimated by maximum likelihood
+                k=2, #gives genuine AIC
+                direction = "backward" #default is "backward" if scope argument is missing #options "both", "forward"
+                )
+
+summary(step_model_aic)
+
+
+```
+
+```{r aic confussion matrix ROC curve}
+
+#model performance metrics
+broom::glance(step_model_aic)
+
+#Fitting with test data
+test_predictions$aic_prediction <- predict(step_model_aic, test_sero, type = "response" #“link”, “response”, “terms”
+        )
+
+ test_predictions$aic_prediction <- as.factor(ifelse(test_predictions$aic_prediction <0.5, "no", "yes"))
+
+#Confussion matrix
+
+con_aic <- caret::confusionMatrix(test_predictions$aic_prediction, test_sero$spikepos, positive = "yes")
+con_aic
+
+#package see required to plot ROC curves
+
+roc_aic <- performance::performance_roc(step_model_aic, new_data = test_sero)
+plot(roc_aic)
+
+
+auc_aic <- bayestestR::area_under_curve(roc_aic$Specificity, roc_aic$Sensitivity)
+
+auc_aic
+
+```
+
+## BIC
+
+BIC is a more restrictive criterion than AIC. It tends to produce a smaller final model.
+
+```{r BIC stepwise regression}
+
+n = nrow(train_sero) #sample size of train data set
+
+step_model_bic <- full_model%>%
+  MASS::stepAIC(trace = 0, #do not show the step by step process of model selection
+                scale = 0, #estimate of the error variance to be estimated by maximum likelihood
+                k=log(n), #gives BIC
+                direction = "backward" #default is backward if scope argument is missing
+                )
+
+summary(step_model_bic)
+
+
+```
+
+```{r bic confussion matrix ROC curve}
+
+#model performance metrics
+broom::glance(step_model_bic)
+
+#Fitting with test data
+
+ test_predictions$bic_prediction <- predict(step_model_bic, test_sero, type = "response" #“link”, “response”, “terms”
+        )
+
+ test_predictions$bic_prediction <- as.factor(ifelse(test_predictions$bic_prediction <0.5, "no", "yes"))
+
+#Confussion matrix
+con_bic <- caret::confusionMatrix(test_predictions$bic_prediction, test_sero$spikepos, positive = "yes")
+con_bic
+
+#package see required to plot ROC curves
+roc_bic <- performance::performance_roc(step_model_bic, new_data = test_sero)
+plot(roc_bic)
+
+
+auc_bic <- bayestestR::area_under_curve(roc_bic$Specificity, roc_bic$Sensitivity)
+
+auc_bic
+
+```
+
+# **Penalized logistic regression**
+
+Imposes a penalty to the logistic model for having too many variables. This results in shrinking the coefficients of the less contributive variables toward zero.
+
+Before running penalized logistic regression, we convert categorical predictors to appropriate dummy variables and categorical outcome to numerical.
+
+In penalized regression, you need to specify a constant **lambda** to adjust the amount of the coefficient shrinkage. The best **lambda** for your data, can be defined as the lambda that minimize the cross-validation prediction error rate
+
+```{r data preparation for penalized regression}
+
+# Dumy code categorical predictor variables
+x_penalized <- stats::model.matrix(spikepos~., train_sero)[,-1]
+
+# Convert the outcome (class) to a numerical variable
+y_penalized <- ifelse(train_sero$spikepos == "yes", 1, 0)
+
+x_test <- stats::model.matrix(spikepos ~., test_sero)[,-1]
+
+```
+
+
+## lasso regression
+
+The coefficients of some less contributive variables are forced to be exactly zero. Only the most significant variables are kept in the final model.
+
+Set Aplha to 1 for lasso regression
+
+```{r lasso data preparation}
+# Set seed for reproducibility
+set.seed(1111)
+
+# Find the best lambda using cross-validation
+ 
+cv_lasso <- cv.glmnet(x_penalized, y_penalized, alpha = 1, family = "binomial")
+plot(cv_lasso)
+
+
+```
+
+### lambda min
+
+The plot displays the cross-validation error according to the log of lambda. The left dashed vertical line indicates that the log of the optimal value of lambda is approximately -3, which is the one that minimizes the prediction error. 
+
+
+```{r lasso regression lambda min}
+
+cv_lasso$lambda.min
+
+
+#coef(cv_lasso, cv_lasso$lambda.min)
+
+# Final model with lambda.min
+lasso_model_lambda_min <- glmnet(x_penalized, y_penalized, alpha = 1, family = "binomial",
+                      lambda = cv_lasso$lambda.min)
+
+
+```
+
+```{r lasso lambda min confussion matrix ROC curve}
+
+#Fitting with test data
+
+ test_predictions$lasso_lambda_min_prediction <- lasso_model_lambda_min %>% 
+   predict(x_test, s = cv_lasso$lambda.min, type = "response" #“link”, “response”, “coefficients”, "nonzero", "class"
+                  )
+
+   
+ test_predictions$lasso_lambda_min_prediction <- as.factor(ifelse(test_predictions$lasso_lambda_min_prediction <0.5, "no", "yes"))
+ 
+
+ #Confussion matrix
+con_lasso_lambda_min <- caret::confusionMatrix(test_predictions$lasso_lambda_min_prediction, test_sero$spikepos, positive = "yes")
+con_lasso_lambda_min
+
+#package see required to plot ROC curves
+roc_lasso_lambda_min <- performance::performance_roc(x= c(as.numeric(test_sero$spikepos)-1),
+                              predictions = c(as.numeric(predict(lasso_model_lambda_min, x_test, s = cv_lasso$lambda.min, type = "response")))
+                                                     )
+plot(roc_lasso_lambda_min)
+
+
+
+auc_lasso_lambda_min <- bayestestR::area_under_curve(roc_lasso_lambda_min$Specificity, roc_lasso_lambda_min$Sensitivity)
+
+auc_lasso_lambda_min
+
+
+
+```
+
+
+### lambda lse
+
+Generally, the purpose of regularization is to balance accuracy and simplicity. This means, a model with the smallest number of predictors that also gives a good accuracy. To this end, the function cv.glmnet() finds also the value of lambda that gives the simplest model but also lies within one standard error of the optimal value of lambda. This value is called lambda.1se.
+
+
+```{r lasso regression lambda lse}
+
+cv_lasso$lambda.1se
+
+#coef(cv_lasso, cv_lasso$lambda.1se)
+
+
+# Final model with lambda.1se
+lasso_model_lambda_lse <- glmnet(x_penalized, y_penalized, alpha = 1, family = "binomial",
+                      lambda = cv_lasso$lambda.1se)
+
+```
+
+
+```{r lasso lamda lse confussion matrix ROC curve}
+
+#Fitting with test data
+
+ test_predictions$lasso_lambda_lse_prediction <- lasso_model_lambda_lse %>% 
+   predict(x_test, s = cv_lasso$lambda.lse, type = "response" #“link”, “response”, “coefficients”, "nonzero", "class"
+                  )
+ 
+ test_predictions$lasso_lambda_lse_prediction <- as.factor(ifelse(test_predictions$lasso_lambda_lse_prediction <0.5, "no", "yes"))
+
+
+ #Confussion matrix
+
+con_lasso_lambda_lse <- caret::confusionMatrix(test_predictions$lasso_lambda_lse_prediction, test_sero$spikepos, positive = "yes")
+con_lasso_lambda_lse
+
+#package see required to plot ROC curves
+roc_lasso_lambda_lse <- performance::performance_roc(x= c(as.numeric(test_sero$spikepos)-1),
+                              predictions = c(as.numeric(predict(lasso_model_lambda_lse, x_test, s = cv_lasso$lambda.lse, type = "response")))
+                                                     )
+plot(roc_lasso_lambda_lse)
+
+
+auc_lasso_lambda_lse <- bayestestR::area_under_curve(roc_lasso_lambda_lse$Specificity, roc_lasso_lambda_lse$Sensitivity)
+
+auc_lasso_lambda_lse
+
+
+```
+
+## ridge regression
+
+Variables with minor contribution have their coefficients close to zero. However, all the variables are incorporated in the model. This is useful when all variables need to be incorporated in the model according to domain knowledge.
+
+Set Aplha to 0 for ridge regression
+
+```{r ridge data preparation}
+# Set seed for reproducibility
+set.seed(1111)
+
+# Find the best lambda using cross-validation
+ 
+cv_ridge <- cv.glmnet(x_penalized, y_penalized, alpha = 0, family = "binomial")
+plot(cv_ridge)
+
+
+```
+
+### lambda min
+
+The plot displays the cross-validation error according to the log of lambda. The left dashed vertical line indicates that the log of the optimal value of lambda is approximately 0, which is the one that minimizes the prediction error. 
+
+
+```{r ridge regression lambda min}
+
+cv_ridge$lambda.min
+
+
+#coef(cv_ridge cv_ridge$lambda.min)
+
+# Final model with lambda.min
+ridge_model_lambda_min <- glmnet(x_penalized, y_penalized, alpha = 0, family = "binomial",
+                      lambda = cv_ridge$lambda.min)
+
+```
+
+```{r ridge lambda min confussion matrix ROC curve}
+
+#Fitting with test data
+
+ test_predictions$ridge_lambda_min_prediction <- ridge_model_lambda_min %>% 
+   predict(x_test, s = cv_ridge$lambda.min, type = "response" #“link”, “response”, “coefficients”, "nonzero", "class"
+                  )
+
+   
+ test_predictions$ridge_lambda_min_prediction <- as.factor(ifelse(test_predictions$ridge_lambda_min_prediction <0.5, "no", "yes"))
+ 
+
+ #Confussion matrix
+con_ridge_lambda_min <- caret::confusionMatrix(test_predictions$ridge_lambda_min_prediction, test_sero$spikepos, positive = "yes")
+con_ridge_lambda_min
+
+#package see required to plot ROC curves
+roc_ridge_lambda_min <- performance::performance_roc(x= c(as.numeric(test_sero$spikepos)-1),
+                              predictions = c(as.numeric(predict(ridge_model_lambda_min, x_test, s = cv_ridge$lambda.min, type = "response")))
+                                                     )
+plot(roc_ridge_lambda_min)
+
+
+auc_ridge_lambda_min <- bayestestR::area_under_curve(roc_ridge_lambda_min$Specificity, roc_ridge_lambda_min$Sensitivity)
+
+auc_ridge_lambda_min
+
+
+```
+
+
+### lambda lse
+
+```{r ridge regression lambda lse}
+
+cv_ridge$lambda.1se
+
+#coef(cv_ridge, cv_ridge$lambda.1se)
+
+
+# Final model with lambda.1se
+ridge_model_lambda_lse <- glmnet(x_penalized, y_penalized, alpha = 0, family = "binomial",
+                      lambda = cv_ridge$lambda.1se)
+
+```
+
+
+```{r ridge lamda lse confussion matrix ROC curve}
+
+#Fitting with test data
+
+ test_predictions$ridge_lambda_lse_prediction <- ridge_model_lambda_lse %>% 
+   predict(x_test, s = cv_ridge$lambda.lse, type = "response" #“link”, “response”, “coefficients”, "nonzero", "class"
+                  )
+ 
+ test_predictions$ridge_lambda_lse_prediction <- as.factor(ifelse(test_predictions$ridge_lambda_lse_prediction <0.5, "no", "yes"))
+
+
+ #Confussion matrix
+
+con_ridge_lambda_lse <- caret::confusionMatrix(test_predictions$ridge_lambda_lse_prediction, test_sero$spikepos, positive = "yes")
+con_ridge_lambda_lse
+
+#package see required to plot ROC curves
+roc_ridge_lambda_lse <- performance::performance_roc(x= c(as.numeric(test_sero$spikepos)-1),
+                              predictions = c(as.numeric(predict(ridge_model_lambda_lse, x_test, s = cv_ridge$lambda.lse, type = "response")))
+                                                     )
+plot(roc_ridge_lambda_lse)
+
+
+auc_ridge_lambda_lse <- bayestestR::area_under_curve(roc_ridge_lambda_lse$Specificity, roc_ridge_lambda_lse$Sensitivity)
+
+auc_ridge_lambda_lse
+
+
+```
+
+
+## elastic net regression
+
+The combination of ridge and lasso regression. It shrinks some coefficients toward zero (like ridge regression) and set some coefficients to exactly zero (like lasso regression).
+
+Set Aplha to between 0 and 1 (say 0.3) for elastic net regression
+
+
+```{r elastic net data preparation}
+# Set seed for reproducibility
+set.seed(1111)
+
+# Find the best lambda using cross-validation
+ 
+cv_elastic <- cv.glmnet(x_penalized, y_penalized, alpha = 0.3, family = "binomial")
+plot(cv_elastic)
+
+
+```
+
+### lambda min
+
+The plot displays the cross-validation error according to the log of lambda. The left dashed vertical line indicates that the log of the optimal value of lambda is approximately -2, which is the one that minimizes the prediction error. 
+
+
+```{r elastic net regression lambda min}
+
+cv_elastic$lambda.min
+
+
+#coef(cv_elastic cv_elastic$lambda.min)
+
+# Final model with lambda.min
+elastic_model_lambda_min <- glmnet(x_penalized, y_penalized, alpha = 0.3, family = "binomial",
+                      lambda = cv_elastic$lambda.min)
+
+```
+
+```{r elastic net lambda min confussion matrix ROC curve}
+
+#Fitting with test data
+
+ test_predictions$elastic_lambda_min_prediction <- elastic_model_lambda_min %>% 
+   predict(x_test, s = cv_elastic$lambda.min, type = "response" #“link”, “response”, “coefficients”, "nonzero", "class"
+                  )
+
+   
+ test_predictions$elastic_lambda_min_prediction <- as.factor(ifelse(test_predictions$elastic_lambda_min_prediction <0.5, "no", "yes"))
+ 
+
+ #Confussion matrix
+con_elastic_lambda_min <- caret::confusionMatrix(test_predictions$elastic_lambda_min_prediction, test_sero$spikepos, positive = "yes")
+con_elastic_lambda_min
+
+#package see required to plot ROC curves
+roc_elastic_lambda_min <- performance::performance_roc(x= c(as.numeric(test_sero$spikepos)-1),
+                              predictions = c(as.numeric(predict(elastic_model_lambda_min, x_test, s = cv_elastic$lambda.min, type = "response")))
+                                                     )
+plot(roc_elastic_lambda_min)
+
+
+auc_elastic_lambda_min <- bayestestR::area_under_curve(roc_elastic_lambda_min$Specificity, roc_elastic_lambda_min$Sensitivity)
+
+auc_elastic_lambda_min
+
+
+```
+
+
+### lambda lse
+
+```{r elastic net regression lambda lse}
+
+cv_elastic$lambda.1se
+
+#coef(cv_elastic, cv_elastic$lambda.1se)
+
+
+# Final model with lambda.1se
+elastic_model_lambda_lse <- glmnet(x_penalized, y_penalized, alpha = 0.3, family = "binomial",
+                      lambda = cv_elastic$lambda.1se)
+
+```
+
+
+```{r elastic net lamda lse confussion matrix ROC curve}
+
+#Fitting with test data
+
+ test_predictions$elastic_lambda_lse_prediction <- elastic_model_lambda_lse %>% 
+   predict(x_test, s = cv_elastic$lambda.lse, type = "response" #“link”, “response”, “coefficients”, "nonzero", "class"
+                  )
+ 
+ test_predictions$elastic_lambda_lse_prediction <- as.factor(ifelse(test_predictions$elastic_lambda_lse_prediction <0.5, "no", "yes"))
+
+
+ #Confussion matrix
+
+con_elastic_lambda_lse <- caret::confusionMatrix(test_predictions$elastic_lambda_lse_prediction, test_sero$spikepos, positive = "yes")
+con_elastic_lambda_lse
+
+#package see required to plot ROC curves
+roc_elastic_lambda_lse <- performance::performance_roc(x= c(as.numeric(test_sero$spikepos)-1),
+                              predictions = c(as.numeric(predict(elastic_model_lambda_lse, x_test, s = cv_elastic$lambda.lse, type = "response")))
+                                                     )
+plot(roc_elastic_lambda_lse)
+
+
+auc_elastic_lambda_lse <- bayestestR::area_under_curve(roc_elastic_lambda_lse$Specificity, roc_elastic_lambda_lse$Sensitivity)
+
+auc_elastic_lambda_lse
+
+
+```
+
+
+# **Model Metrics**
+
+```{r model metrics}
+
+kable(
+tibble(model = c("full model", "step AIC", "step BIC", "Lasso-lambda min", "Lasso-lambda lse",
+                 "Ridge-lambda min", "Ridge-lambda lse", "Elastic net-lambda min", "Elastic net-lambda lse"),
+       accuracy = c(con_full_model$overall[["Accuracy"]], con_aic$overall[["Accuracy"]], con_bic$overall[["Accuracy"]],
+                    con_lasso_lambda_min$overall[["Accuracy"]], con_lasso_lambda_lse$overall[["Accuracy"]],
+                    con_ridge_lambda_min$overall[["Accuracy"]], con_ridge_lambda_lse$overall[["Accuracy"]],
+                    con_elastic_lambda_min$overall[["Accuracy"]], con_elastic_lambda_lse$overall[["Accuracy"]]),
+       kappa = c(con_full_model$overall[["Kappa"]], con_aic$overall[["Kappa"]], con_bic$overall[["Kappa"]],
+                    con_lasso_lambda_min$overall[["Kappa"]], con_lasso_lambda_lse$overall[["Kappa"]],
+                    con_ridge_lambda_min$overall[["Kappa"]], con_ridge_lambda_lse$overall[["Kappa"]],
+                    con_elastic_lambda_min$overall[["Kappa"]], con_elastic_lambda_lse$overall[["Kappa"]]),
+       "sensitivity/recall" = c(con_full_model$byClass[["Sensitivity"]], con_aic$byClass[["Sensitivity"]], con_bic$byClass[["Sensitivity"]],
+                    con_lasso_lambda_min$byClass[["Sensitivity"]], con_lasso_lambda_lse$byClass[["Sensitivity"]],
+                    con_ridge_lambda_min$byClass[["Sensitivity"]], con_ridge_lambda_lse$byClass[["Sensitivity"]],
+                    con_elastic_lambda_min$byClass[["Sensitivity"]], con_elastic_lambda_lse$byClass[["Sensitivity"]]),
+       specificity = c(con_full_model$byClass[["Specificity"]], con_aic$byClass[["Specificity"]], con_bic$byClass[["Specificity"]],
+                    con_lasso_lambda_min$byClass[["Specificity"]], con_lasso_lambda_lse$byClass[["Specificity"]],
+                    con_ridge_lambda_min$byClass[["Specificity"]], con_ridge_lambda_lse$byClass[["Specificity"]],
+                    con_elastic_lambda_min$byClass[["Specificity"]], con_elastic_lambda_lse$byClass[["Specificity"]]),
+       "positive predictive value/precision" = 
+         c(con_full_model$byClass[["Pos Pred Value"]], con_aic$byClass[["Pos Pred Value"]], con_bic$byClass[["Pos Pred Value"]],
+                    con_lasso_lambda_min$byClass[["Pos Pred Value"]], con_lasso_lambda_lse$byClass[["Pos Pred Value"]],
+                    con_ridge_lambda_min$byClass[["Pos Pred Value"]], con_ridge_lambda_lse$byClass[["Pos Pred Value"]],
+                    con_elastic_lambda_min$byClass[["Pos Pred Value"]], con_elastic_lambda_lse$byClass[["Pos Pred Value"]]),
+       "negative predictive value" = 
+         c(con_full_model$byClass[["Neg Pred Value"]], con_aic$byClass[["Neg Pred Value"]], con_bic$byClass[["Neg Pred Value"]],
+                    con_lasso_lambda_min$byClass[["Neg Pred Value"]], con_lasso_lambda_lse$byClass[["Neg Pred Value"]],
+                    con_ridge_lambda_min$byClass[["Neg Pred Value"]], con_ridge_lambda_lse$byClass[["Neg Pred Value"]],
+                    con_elastic_lambda_min$byClass[["Neg Pred Value"]], con_elastic_lambda_lse$byClass[["Neg Pred Value"]]),
+       auc = c(auc_full_model, auc_aic, auc_bic, auc_lasso_lambda_min, auc_lasso_lambda_lse,
+               auc_ridge_lambda_min, auc_ridge_lambda_lse, auc_elastic_lambda_min, auc_elastic_lambda_lse)
+       
+       )
+,digits = 4)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
