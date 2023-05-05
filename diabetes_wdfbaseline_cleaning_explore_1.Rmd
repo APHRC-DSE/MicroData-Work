@@ -1,0 +1,859 @@
+---
+title: "Diabetes WDF baseline"
+author: "Reinpeter"
+date: "`r Sys.Date()`"
+output:
+  word_document: 
+    fig_width: 12
+    fig_height: 8
+    number_sections: yes
+  pdf_document:
+    fig_width: 12
+    fig_height: 8
+    number_sections: yes
+  html_document:
+    toc: yes
+    toc_depth: 4
+    number_sections: yes
+---
+
+
+
+```{r setup, results="hide", include=FALSE}
+
+## Set Chunk requirements
+knitr::opts_chunk$set(#include = TRUE,
+                      echo=FALSE, message = FALSE, warning = FALSE)
+
+
+```
+
+```{r setting working directory, include=FALSE, results = "hide"}
+
+## Setting work directory
+
+setwd(".")
+
+```
+
+
+```{r loading relevant packages, include=FALSE, results = "hide"}
+
+#library we need
+libs_diabetes_baseline <- c("googledrive" ,"tidyverse", "haven", "janitor", "knitr",
+                            "lubridate", "plotly", "gtsummary", "flextable")
+
+#install missing libraries
+
+inatalled_libs_diabetes_baseline <- libs_diabetes_baseline  %in% rownames(installed.packages())
+if (any(inatalled_libs_diabetes_baseline==F)) {
+  install.packages(libs_diabetes_baseline[!inatalled_libs_diabetes_baseline])
+}
+
+#load libraries
+
+invisible(lapply(libs_diabetes_baseline, library, character.only=T))
+
+
+set_gtsummary_theme(list(
+  "tbl_summary-fn:percent_fun" = function(x) style_percent(x, digits = 1),
+  "tbl_summary-str:categorical_stat" = "{n} ({p}%)"
+))
+# Setting `Compact` theme
+theme_gtsummary_compact()
+
+```
+
+
+```{r googledrive downloading diabetes data, results="hide", include=FALSE}
+
+ drive_auth(#email = "guest360@aphrc.org"
+           )
+
+  #drive_user()
+
+  diabetes_baseline_file_id <- drive_find(shared_drive = c(shared_drive_find(pattern = "Data Science Programs")$id),
+           q = c("name contains 'wdfbaseline_cleaned.dta'")) #search for a specific set of shared drives, use the query string q
+  
+
+  diabetes_baseline_local_download <- drive_download(diabetes_baseline_file_id$id, overwrite = TRUE)
+
+  
+  diabetes_followup_file_id <- drive_find(shared_drive = c(shared_drive_find(pattern = "Data Science Programs")$id),
+           q = c("name contains 'wdffollowup_cleaned.dta'")) #search for a specific set of shared drives, use the query string q
+
+  
+  diabetes_followup_local_download <- drive_download(diabetes_followup_file_id$id, overwrite = TRUE)
+
+```
+
+
+```{r reading diabetes data locally, results="hide", include=FALSE}
+
+  ##Reading the .dta with labelled vector converted to a factor
+  
+  diabetes_followup <- read_dta("wdffollowup_cleaned.dta")%>%
+  mutate_if(haven::is.labelled, as_factor)
+
+  diabetes_baseline <- read_dta("wdfbaseline_cleaned.dta")%>%
+  mutate_if(is.labelled, as_factor)%>%
+   labelled::set_variable_labels( #relabeling specific variables
+     wdf_q2_3a = "For how long have you had diabetes, since you were diagnosed (units-D, W, M, Y)?",
+     wdf_q2_3b = "For how long have you had diabetes, since you were diagnosed (# of units)?",
+     wdf_q2_6 = "How would you describe your treatment for diabetes?",
+     wdf_q2_7a = "Medication you were taking to treat the Diabetes? - Tablets prescribed by a health worker",
+     wdf_q2_7b = "Medication you were taking to treat the Diabetes? - Tablets i got from a drug store without a prescription",
+     wdf_q2_7c = "Medication you were taking to treat the Diabetes? - Tablets i got from relatives/friends w/o prescription",
+     wdf_q2_7d = "Medication you were taking to treat the Diabetes? - Injections (insulin)",
+     wdf_q2_7e = "Medication you were taking to treat the Diabetes? - Herbal medicine together with tabs/insulin",
+     wdf_q2_7f = "Medication you were taking to treat the Diabetes? - Herbal medicine only",
+     wdf_q2_7g = "Medication you were taking to treat the Diabetes? - Other",
+     wdf_q2_7sp = "Medication you were taking to treat the Diabetes? - Other specified",
+     wdf_q2_8a = "Where were you getting treatment for Diabetes before you started attending this clinic? - Kenyatta national hospital",
+     wdf_q2_8b = "Where were you getting treatment for Diabetes before you started attending this clinic? - Govt district hospital",
+     wdf_q2_8bsp = "Where were you getting treatment for Diabetes before you started attending this clinic? - Govt district hospital specified",
+     wdf_q2_8c = "Where were you getting treatment for Diabetes before you started attending this clinic? - Govt health centre",
+     wdf_q2_8csp = "Where were you getting treatment for Diabetes before you started attending this clinic? - Govt health centre specified",
+     wdf_q2_8d = "Where were you getting treatment for Diabetes before you started attending this clinic? - Private hospital",
+     wdf_q2_8dsp = "Where were you getting treatment for Diabetes before you started attending this clinic? - Private hospital specified",
+     wdf_q2_8e = "Where were you getting treatment for Diabetes before you started attending this clinic? - Other hospital",
+     wdf_q2_8esp = "Where were you getting treatment for Diabetes before you started attending this clinic? - Other hospital specified",
+     wdf_q2_8f = "Where were you getting treatment for Diabetes before you started attending this clinic? - Other health facility",
+     wdf_q2_8fsp = "Where were you getting treatment for Diabetes before you started attending this clinic? - Other health facility specified",
+     wdf_q2_8g = "Where were you getting treatment for Diabetes before you started attending this clinic? - I started treatment from here",
+     wdf_q2_8h = "Where were you getting treatment for Diabetes before you started attending this clinic? - I don't remember",
+     wdf_q2_8i = "Where were you getting treatment for Diabetes before you started attending this clinic? - Other",
+     wdf_q2_8isp = "Where were you getting treatment for Diabetes before you started attending this clinic? - Other specified",
+     wdf_q2_11a = "How long have you had high BP, since you were diagnosed (units-D, W, M, Y)?",
+     wdf_q2_11b = "How long have you had high BP, since you were diagnosed (# of units)?",
+     wdf_q2_14 = "How would you describe your treatment for high bp?",
+     wdf_q2_15a = "Medication you were taking to treat the Hypertension? - Tablets prescribed by a health worker",
+     wdf_q2_15b = "Medication you were taking to treat the Hypertension? - Tablets i got from a drug store without a prescription",
+     wdf_q2_15c = "Medication you were taking to treat the Hypertension? - Tablets i got from relatives/friends w/o prescription",
+     wdf_q2_15d = "Medication you were taking to treat the Hypertension? - Herbal medicine together with tabs",
+     wdf_q2_15e = "Medication you were taking to treat the Hypertension? - Herbal medicine only",
+     wdf_q2_15f = "Medication you were taking to treat the Hypertension? - Other",
+     wdf_q2_15fsp = "What kind of medication were you taking to treat the Hypertension? - Other specified",
+     wdf_q2_16a = "Where were you getting treatment for High BP before you started attending this clinic? - Kenyatta national hospital",
+     wdf_q2_16b = "Where were you getting treatment for High BP before you started attending this clinic? - Govt district hospital",
+     wdf_q2_16bsp = "Where were you getting treatment for High BP before you started attending this clinic? - Govt district hospital specified",
+     wdf_q2_16c = "Where were you getting treatment for High BP before you started attending this clinic? - Govt health centre",
+     wdf_q2_16csp = "Where were you getting treatment for High BP before you started attending this clinic? - Govt health centre specified",
+     wdf_q2_16d = "Where were you getting treatment for High BP before you started attending this clinic? - Private hospital",
+     wdf_q2_16dsp = "Where were you getting treatment for High BP before you started attending this clinic? - Private hospital specified",
+     wdf_q2_16e = "Where were you getting treatment for High BP before you started attending this clinic? - Other hospital",
+     wdf_q2_16esp = "Where were you getting treatment for High BP before you started attending this clinic? - Other hospital specified",
+     wdf_q2_16f = "Where were you getting treatment for High BP before you started attending this clinic? - Other health facility",
+     wdf_q2_16fsp = "Where were you getting treatment for High BP before you started attending this clinic? - Other health facility specified",
+     wdf_q2_16g = "Where were you getting treatment for High BP before you started attending this clinic? - I started treatment from here",
+     wdf_q2_16h = "Where were you getting treatment for High BP before you started attending this clinic? - I don't remember",
+     wdf_q2_16i = "Where were you getting treatment for High BP before you started attending this clinic? - Other",
+     wdf_q2_16isp = "Where were you getting treatment for High BP before you started attending this clinic? - Other specified",
+     wdf_q2_19a = "Have peripheral neuropathy complication",
+     wdf_q2_19b = "Have poor vision complication",
+     wdf_q2_19d = "Have kidney problems complication",
+     wdf_q2_19e = "Have chest pain complication",
+     wdf_q2_19f = "Have body swelling (abdominal or pedal oedema) complication",
+     wdf_q3_9 = "In the past, did you ever use smokeless tobacco daily?",
+     wdf_q5_3a = "Blood pressure today-Systolic",
+     wdf_q5_3b = "Blood pressure today-Diastolic",
+     wdf_q5_10 = "Blood glucose (mmol/L)",
+     wdf_q5_11 = "Hba1c measurement (%)"
+     )
+
+  
+  diabetes_baseline1 <- read_dta("wdfbaseline_cleaned.dta") #read_dta(paste0(diabetes_baseline_local_download$local_path))
+  
+ 
+  diabetes_baseline_variable_attr <- as.data.frame(labelled::generate_dictionary(diabetes_baseline))
+
+  diabetes_baseline_variable_attr1 <- as.data.frame(labelled::look_for(diabetes_baseline1, labels = TRUE, values = TRUE))
+
+```
+
+
+```{r assigning variable labels}
+
+#Creating a named vector to quickly assign the variable labels
+
+diabetes_baseline_labels <- diabetes_baseline_variable_attr%>%
+  select(variable, label)%>%
+  deframe()
+
+```
+
+
+```{r saving data localy, results="hide", include=FALSE}
+
+#saving as .csv
+readr::write_csv(diabetes_baseline,"wdfbaseline_cleaned.csv", na="")
+
+
+```
+
+
+
+```{r reading scan report, results="hide", include=FALSE}
+
+#downloading data from shared google drive
+
+scan_report_baseline_id <- drive_find(shared_drive = c(shared_drive_find(pattern = "Data Science Programs")$id),
+           q = c("name contains 'ScanReport_wdfbaseline.xlsx'")) #search for a specific set of shared drives, use the query string q
+
+
+scan_report_baseline_local_download <- drive_download(scan_report_baseline_id$id, overwrite = TRUE)
+
+
+```
+
+
+```{r creating unique id, results="hide", include=FALSE}
+
+#creating unique id from names of participants from baseline and followup data
+
+unique_id <- rbind(diabetes_baseline%>%dplyr::select(wdf_q1_6, wdf_q1_4),
+                   diabetes_followup%>%dplyr::select(wdf_q1_6, wdf_q1_4))%>%
+  distinct(wdf_q1_6, wdf_q1_4)%>%
+  mutate(study_id = 1:n())%>%
+  labelled::set_variable_labels( #relabeling specific variables
+    study_id = "Created respondent id"
+  )
+
+
+```
+
+
+```{r final data, results="hide", include=FALSE}
+
+diabetes_baseline_final <- diabetes_baseline%>%
+  left_join(unique_id, 
+            by = c("wdf_q1_6" = "wdf_q1_6", "wdf_q1_4" = "wdf_q1_4"))%>%
+  dplyr::select(study_id, wdf_q1_2:wdf_q5_11)%>%
+   mutate(wdf_q2_2 = if_else(wdf_q2_1 == "Yes" & is.na(wdf_q2_2),  wdf_q1_2- (as.period(str_to_lower(wdf_q2_3a))*(as.numeric(wdf_q2_3b))),
+                           wdf_q2_2), #cleaning when you were diagnosed with diabetes column
+          wdf_q5_5b = if_else(wdf_q5_5a == 161.1 & wdf_q5_5b == 61, 161, wdf_q5_5b), #cleaning 2nd reading height column
+          wdf_q1_4_age = round(time_length(difftime(wdf_q1_2, wdf_q1_4, units = "auto"), unit = "year"),2), #creating age column
+          wdf_q1_4_age_group = ifelse(wdf_q1_4_age < 51, "50 and below",
+                          ifelse(wdf_q1_4_age  < 61, "51-60 years", "61 years and above" )), #creating age group column
+          wdf_q1_4_age_group = factor(wdf_q1_4_age_group, levels = c("50 and below", "51-60 years", "61 years and above")), #factor age group column
+          wdf_q2_3a_b_years = round(time_length(as.period(str_to_lower(wdf_q2_3a))*(as.numeric(wdf_q2_3b)), unit = "year"),3), #creating duration of diabetes in years column
+          wdf_q2_3a_b_years_group = ifelse(wdf_q2_3a_b_years < 5, "Below 5 years",
+                        ifelse(wdf_q2_3a_b_years  < 10, "5-9 years", "10 years and above" )), #creating duration of diabetes in years group column
+          wdf_q2_3a_b_years_group = factor(wdf_q2_3a_b_years_group, levels = c("Below 5 years", "5-9 years", "10 years and above")), #factor duration of diabetes in years group column
+          wdf_q2_11a = if_else(wdf_q2_11b == 98, "Months", wdf_q2_11a ), #cleaning column
+          wdf_q2_11a = factor(wdf_q2_11a, levels = c("Days", "Weeks", "Months", "Years")), #factor cleaned column
+          wdf_q2_11a_b_years = round(time_length(as.period(str_to_lower(wdf_q2_11a))*(as.numeric(wdf_q2_11b)), unit = "year"),3), #creating duration of hypertension in years column
+          wdf_q2_11a_b_years_group = ifelse(wdf_q2_11a_b_years < 5, "Below 5 years",
+                      ifelse(wdf_q2_11a_b_years  < 10, "5-9 years", "10 years and above" )), #creating duration of hypertension in years group column
+          wdf_q2_11a_b_years_group = factor(wdf_q2_11a_b_years_group, levels = c("Below 5 years", "5-9 years", "10 years and above")), #factor duration of hypertension in years group column
+          wdf_q3_5a_b_years = round(time_length(as.period(str_to_lower(wdf_q3_5a))*(as.numeric(wdf_q3_5b)), unit = "year"),3), #creating duration of how long ago did you stop smoking in years column
+          wdf_q3_34a_b_hours = round(time_length(hours(as.numeric(wdf_q3_34a))+minutes(as.numeric(wdf_q3_34b)), unit = "hour"),2), #creating duration of How much time do you spend doing vigorous-intensity activities (hours+min) combined column
+          wdf_q3_37a_b_hours = round(time_length(hours(as.numeric(wdf_q3_37a))+minutes(as.numeric(wdf_q3_37b)), unit = "hour"),2), #creating duration of How much time do you spend doing moderate-intensity activities (hours+min) combined column
+          wdf_q3_40a_b_hours = round(time_length(hours(as.numeric(wdf_q3_40a))+minutes(as.numeric(wdf_q3_40b)), unit = "hour"),2), #creating duration of How much time do you spend walking or cycling (hours+min) combined column
+          wdf_q3_43a_b_hours = round(time_length(hours(as.numeric(wdf_q3_43a))+minutes(as.numeric(wdf_q3_43b)), unit = "hour"),2), #creating duration of How much time do you spend on vigorous-intensity sports (hours+min) combined column
+          wdf_q3_46a_b_hours = round(time_length(hours(as.numeric(wdf_q3_46a))+minutes(as.numeric(wdf_q3_46b)), unit = "hour"),2), #creating duration of How much time do you spend on moderate-intensity sports (hours+min) combined column
+          wdf_q3_47a_b_hours = round(time_length(hours(as.numeric(wdf_q3_47a))+minutes(as.numeric(wdf_q3_47b)), unit = "hour"),2), #creating duration of How much time do you usually spend sitting or reclining (hours+min) combined column
+          wdf_q5_1_2_3a = round(rowMeans(across(c(wdf_q5_1a,wdf_q5_2a,wdf_q5_3a)), na.rm = TRUE),0), #creating average Systolic BP column
+          wdf_q5_1_2_3b = round(rowMeans(across(c(wdf_q5_1b,wdf_q5_2b,wdf_q5_3b)), na.rm = TRUE),0), #creating average Diastolic BP column
+          wdf_q5_bp = ifelse(wdf_q5_1_2_3a <120 & wdf_q5_1_2_3b <80, "< 120/80", ">=120/80"), #Creating < 120/80 & >=120/80 BP group column
+          wdf_q5_bp = factor(wdf_q5_bp, levels = c("< 120/80", ">=120/80")), #factor < 120/80 & >=120/80 BP group column
+          wdf_q5_5a_b = round(rowMeans(across(c(wdf_q5_5a, wdf_q5_5b)), na.rm = TRUE)/100,2), #creating average height in meters column
+          wdf_q5_6_7 = round(rowMeans(across(c(wdf_q5_6, wdf_q5_7)), na.rm = TRUE),1), #creating average weight in meters column
+          wdf_q5_5_6_7_bmi = round(wdf_q5_6_7/((wdf_q5_5a_b)^2),2), #creating BMI column
+          wdf_q5_5_6_7_bmi_group = ifelse(wdf_q5_5_6_7_bmi <18.5, "Underweight (<18.5)",
+                                    ifelse(wdf_q5_5_6_7_bmi <25, "Normal (18.5–24.9)",
+                                    ifelse(wdf_q5_5_6_7_bmi <30, "Overweight (25–29.9)", "Obese (>=30)"))), #Creating BMI group column
+          wdf_q5_5_6_7_bmi_group = factor(wdf_q5_5_6_7_bmi_group, levels = c("Underweight (<18.5)", "Normal (18.5–24.9)",
+                                                    "Overweight (25–29.9)", "Obese (>=30)")), #factor BMI group column
+          wdf_q5_8a_b_waist_hip_ratio = round(wdf_q5_8a/wdf_q5_8b,2), #creating waist hip ratio column
+          wdf_q5_8a_b_waist_hip_ratio_group = ifelse(wdf_q1_5== "Female" & wdf_q5_8a_b_waist_hip_ratio < 0.87, "Normal (Male <=0.95; Female <=0.86)",
+                                              ifelse(wdf_q1_5== "Male" & wdf_q5_8a_b_waist_hip_ratio < 0.96, "Normal (Male <=0.95; Female <=0.86)",
+                                                     "At Risk (Male >0.95; Female >0.86)")), #creating waist hip ratio group column
+          wdf_q5_8a_b_waist_hip_ratio_group = factor(wdf_q5_8a_b_waist_hip_ratio_group,
+                                        levels = c("Normal (Male <=0.95; Female <=0.86)", "At Risk (Male >0.95; Female >0.86)")), #factor waist hip ratio group column
+          wdf_q5_10_group = ifelse(wdf_q5_10 <8.2, "Less than 8.2", "8.2 and higher"), #Creating <8.2 & >=8.2 blood glucose group column
+          wdf_q5_10_group = factor(wdf_q5_10_group, levels = c("Less than 8.2", "8.2 and higher")) #factor <8.2 & >=8.2 blood glucose group column
+            )%>%
+  labelled::set_variable_labels(!!!diabetes_baseline_labels[names(diabetes_baseline_labels) %in% names(.)])%>% #labeling variables from data dictionary 
+   labelled::set_variable_labels( #creating labels for new variables
+     wdf_q1_4_age = "Respondent's age in years",
+     wdf_q1_4_age_group = "Respondent's age group",
+     wdf_q2_3a_b_years = "Duration of diabetes (years)",
+     wdf_q2_3a_b_years_group = "Duration of diabetes (years) group",
+     wdf_q2_11a_b_years = "Duration of high BP (years)",
+     wdf_q2_11a_b_years_group = "Duration of hig BP (years) group",
+     wdf_q3_5a_b_years = "How long ago did you stop smoking daily? (in years)",
+     wdf_q3_34a_b_hours = "How much time do you spend doing vigorous-intensity activities in hrs (combined hours + min)",
+     wdf_q3_37a_b_hours = "How much time do you spend doing moderate-intensity activities in hrs (combined hours + min)",
+     wdf_q3_40a_b_hours = "How much time do you spend walking or cycling in hrs (combined hours + min)",
+     wdf_q3_43a_b_hours = "How much time do you spend on vigorous-intensity sports in hrs (combined hours + min)",
+     wdf_q3_46a_b_hours = "How much time do you spend on moderate-intensity sports in hrs (combined hours + min)",
+     wdf_q3_47a_b_hours = "How much time do you usually spend sitting or reclining in hrs (combined hours + min)",
+     wdf_q5_1_2_3a = "Systolic Blood pressure",
+     wdf_q5_1_2_3b = "Diastolic Blood pressure",
+     wdf_q5_bp = "Blood Pressure (mmHg)",
+     wdf_q5_5a_b = "Height in metres",
+     wdf_q5_6_7 = "Weight in kgs", 
+     wdf_q5_5_6_7_bmi = "BMI (kg/m2)",
+     wdf_q5_5_6_7_bmi_group = "BMI (kg/m2) group",
+     wdf_q5_8a_b_waist_hip_ratio = "Waist-to-hip ratio",
+     wdf_q5_8a_b_waist_hip_ratio_group = "Waist-to-hip ratio group",
+     wdf_q5_10_group = "Blood glucose (mmol/L) group"
+   )%>%
+  mutate_if(is.factor, ~fct_drop(.x #, only = c("NIU (not in universe)","missing:impute", "don't know", "other(specify)")
+            )) #drop specific unused factor levels
+
+
+```
+
+
+```{r final clean data}
+
+diabetes_baseline_final_clean <- diabetes_baseline_final%>%
+  mutate(
+    across(c(wdf_q3_2, wdf_q3_3, wdf_q3_4, wdf_q3_7, wdf_q3_8, wdf_q3_9), ~ as.character(.x)), #Change columns to character
+    across(c(wdf_q3_2, wdf_q3_3, wdf_q3_4, wdf_q3_7, wdf_q3_8, wdf_q3_9), ~ ifelse(is.na(.x), "No", .x)), #Replace NA to No
+    across(c(wdf_q3_2, wdf_q3_3, wdf_q3_4, wdf_q3_7, wdf_q3_8, wdf_q3_9), ~ factor(.x, levels = c("Yes", "No")) ), #convert Column to Factor
+    wdf_q3_13 = ifelse(wdf_q3_10 == "No", NA, wdf_q3_13), #Replace condition 9 to NA
+    wdf_q3_14 = fct_collapse(wdf_q3_14, No = c("No", "9")), #factor collapse column
+    wdf_q3_15 = fct_collapse(wdf_q3_15, Yes = c("Yes", "9")), #factor collapse column
+    across(c(wdf_q3_17a, wdf_q3_17b, wdf_q3_17c, wdf_q3_17d, wdf_q3_17e, wdf_q3_17f), ~ as.character(.x)), #Change columns to character
+    across(c(wdf_q3_17a, wdf_q3_17b, wdf_q3_17c, wdf_q3_17d, wdf_q3_17e, wdf_q3_17f), 
+           ~ ifelse(wdf_q3_15 == "Yes" & .x == "9", NA, .x)), #Replace condition 9 to NA
+    across(c(wdf_q3_17a, wdf_q3_17b, wdf_q3_17c, wdf_q3_17d, wdf_q3_17e, wdf_q3_17f), 
+           ~ factor(.x, levels = c("Yes", "No", "9")) ), #convert Column to Factor
+   across(c(wdf_q3_17a, wdf_q3_17b, wdf_q3_17c, wdf_q3_17d, wdf_q3_17e, wdf_q3_17f),
+          ~ fct_collapse(.x, No = c("No", "9") ) ), #Factor collapse column
+   across(c(wdf_q3_31a, wdf_q3_31b, wdf_q3_31c, wdf_q3_31e, wdf_q3_31f), ~ na_if(.x, 99)), #convert 99 to NA
+   wdf_q4_10 = fct_collapse(wdf_q4_10, 'Very Unhappy' = c("Very Unhappy", "6")),#factor collapse column
+   across(c(wdf_q4_1:wdf_q4_10), ~ fct_rev(.x)))%>%
+  labelled::set_variable_labels(!!!diabetes_baseline_labels[names(diabetes_baseline_labels) %in% names(.)]) #labeling variables from data dictionary
+
+
+```
+
+
+```{r diabetes baseline final data for analysis, results="hide", include=FALSE}
+
+# make dataset with variables for descriptive and inferential statistics
+
+  diabetes_baseline_final_analysis <- diabetes_baseline_final_clean%>%
+  dplyr::select( #socio-demographics
+    wdf_q1_5, wdf_q1_4_age, wdf_q1_4_age_group,
+                #History of medical conditions and treatment
+    wdf_q2_1, wdf_q2_3a_b_years, wdf_q2_3a_b_years_group, wdf_q2_4, wdf_q2_6:wdf_q2_7f, 
+    wdf_q2_8a, wdf_q2_8b, wdf_q2_8c, wdf_q2_8d, wdf_q2_8g,
+    wdf_q2_9, wdf_q2_11a_b_years, wdf_q2_11a_b_years_group, wdf_q2_12, wdf_q2_14:wdf_q2_15e,
+    wdf_q2_16a, wdf_q2_16b, wdf_q2_16c, wdf_q2_16d, wdf_q2_16g,
+    wdf_q2_17a, wdf_q2_17b, wdf_q2_17c, wdf_q2_17d, wdf_q2_17e, wdf_q2_17f, wdf_q2_17g, 
+    wdf_q2_17h, wdf_q2_17i, wdf_q2_19a:wdf_q2_19f,
+                #Lifestyle history/Health behaviour
+    wdf_q3_1:wdf_q3_4, wdf_q3_5a_b_years,wdf_q3_6:wdf_q3_11, wdf_q3_13:wdf_q3_15, wdf_q3_17a:wdf_q3_17f,
+    wdf_q3_18:wdf_q3_29a, wdf_q3_30:wdf_q3_31c, wdf_q3_31e:wdf_q3_33, wdf_q3_34a_b_hours,
+    wdf_q3_35:wdf_q3_36, wdf_q3_37a_b_hours, wdf_q3_38:wdf_q3_39, wdf_q3_40a_b_hours, 
+    wdf_q3_41:wdf_q3_42, wdf_q3_43a_b_hours, wdf_q3_44:wdf_q3_45, wdf_q3_46a_b_hours, wdf_q3_47a_b_hours, wdf_q3_48,
+                #Well being and Quality of life
+    wdf_q4_1:wdf_q4_10,
+                #Clinical and anthropometric measurements
+    wdf_q5_0a:wdf_q5_0d, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_bp, wdf_q5_4,
+    wdf_q5_5a_b, wdf_q5_6_7, wdf_q5_5_6_7_bmi, wdf_q5_5_6_7_bmi_group,
+    wdf_q5_8a, wdf_q5_8b, wdf_q5_8a_b_waist_hip_ratio, wdf_q5_8a_b_waist_hip_ratio_group, wdf_q5_10, wdf_q5_10_group
+                )
+
+  
+    diabetes_baseline_well_being_numeric_final_analysis <- diabetes_baseline_final_analysis%>%
+               mutate(across(c(wdf_q4_1:wdf_q4_10), ~ as.numeric(.x)))%>%
+  labelled::set_variable_labels(!!!diabetes_baseline_labels[names(diabetes_baseline_labels) %in% names(.)]) #labeling variables from data dictionary
+
+```
+
+
+```{r saving locally followup final clean data, results="hide", include=FALSE}
+
+#saving final followup data
+save(diabetes_baseline_final_clean, diabetes_baseline_final_analysis, file = "wdfbaseline_cleaned_final.RData")
+
+```
+
+
+# **Introduction**
+
+This study titled [**Improving the lives of diabetics in Nairobi's slum through access to quality health care**](https://microdataportal.aphrc.org/index.php/catalog/75) was under the **Health and Well-Being (HaW) Theme** and aimed to improve the management of diabetes and other comorbidities with emphasis on the use of integrated guidelines and patient empowerment. It was carried out from Individual respondents living in Korogocho and Viwandani informal settlements in Nairobi.
+
+
+# **Data-Baseline**
+
+Data collected face to face on clinical attendees using (WDF_Baseline - Questionnaire) included:
+
+* Demographic identifiers (respondentID, age and sex).
+
+* history of medical conditions and treatment
+
+* lifestyle history/Health behaviour
+
+* well being and quality of life
+
+* clinical and anthropometric measurements.
+
+
+## Data description
+
+* The data has `r ncol(diabetes_baseline)` variables and `r nrow(diabetes_baseline)` observations.
+
+* All `r nrow(diabetes_baseline[diabetes_baseline$wdf_q1_10=="Yes",])` individuals accepted to participate in the study with `r paste0("(",round((nrow(diabetes_baseline[diabetes_baseline$wdf_q1_11=="Signs",])*100)/nrow(diabetes_baseline),1), "%)")` signing to show that they had accepted to participate in the study. 
+
+
+```{r data description}
+
+
+  tbl_summary(diabetes_baseline_final_clean%>%dplyr::select(wdf_q1_10, wdf_q1_11, wdf_q1_12), 
+                      type = list(
+                        all_dichotomous() ~ "categorical")
+                      , digits = list(all_continuous() ~ 2, 
+                                      all_categorical() ~ c(0, 1))
+                      , missing = "no" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Descriptives**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  as_flex_table() #covert gtsummary object to knitrkable object. also use as_flex_table() to maintain identation, footnotes, spanning headers
+
+
+```
+
+## Data Dictionary
+
+Information about the attributes of diabetes baseline data contains 6 columns namely:
+
+- **pos:** Column position of variable in data
+- **variable:** Study variable
+- **label:** Description of study variable
+- **col_type:** Data type. i.e dbl(numeric variable), fct(categorical variable), date(date variable), chr(character/string variable)
+- **levels:** variable levels/categories
+- **value_labels:** value of variable categories
+
+```{r data dictionary, results='asis'}
+
+kable(
+  diabetes_baseline_variable_attr%>%
+    mutate(value_labels = diabetes_baseline_variable_attr1$value_labels)
+  )
+
+```
+
+
+## Data Analysis
+
+The quantitative data was cleaned and analysed using R version 4.2.3 (2023). 
+
+Descriptive summary statistics in form of frequency, percentage, mean and standard deviation were generated to examine socio-demographic, history of medical conditions and treatment, lifestyle history/Health behaviour, well being/quality of life and clinical and anthropometric measurements variables.
+
+Chi-square test and Fisher's exact test where appropriate were used for categorical data to analyze difference in proportion of socio-demographic, history of medical conditions and treatment, lifestyle history/Health behaviour, well being/quality of life and clinical and anthropometric measurements variables as a function of gender, age group, diabetes and hypertension. 
+
+For continous data, Wilcoxon rank sum test, Welch Two Sample t-test and Kruskal-Wallis rank sum test where appropriate was used to examine the comparison of gender, age group, diabetes and hypertension with various continous variables.
+
+The results are presented in narrative and summary tables. Statistical significance was set at p<0.05
+
+# **Descriptive statistics**
+
+```{r final variables descriptives}
+
+
+ tbl_summary(diabetes_baseline_final_analysis, 
+                      type = list(
+                        c(wdf_q3_5a_b_years, wdf_q3_13, wdf_q3_18:wdf_q3_21, wdf_q3_27:wdf_q3_28, 
+                          wdf_q3_31a:wdf_q3_31c, wdf_q3_31e:wdf_q3_31f, wdf_q3_33, wdf_q3_34a_b_hours,
+                          wdf_q3_36, wdf_q3_37a_b_hours, wdf_q3_39, wdf_q3_40a_b_hours,
+                          wdf_q3_42, wdf_q3_43a_b_hours, wdf_q3_45, wdf_q3_46a_b_hours,
+                          wdf_q3_47a_b_hours, wdf_q3_48) ~ "continuous2",
+                        all_dichotomous() ~ "categorical"
+                        ,all_continuous() ~ "continuous2"
+                        )
+                      , statistic = all_continuous() ~ c(
+                        "{mean} ({sd})",
+                        "{median} ({p25}, {p75})",
+                        "{min}, {max}" )
+                      , digits = list(all_continuous() ~ 2, 
+                                      all_categorical() ~ c(0, 1))
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Variables**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  modify_footnote(
+    all_stat_cols() ~ "Mean (SD); Median (IQR); Range; Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to knitrkable object. also use as_flex_table() to maintain identation, footnotes, spanning headers
+
+
+```
+
+
+```{r Well being and Quality of life numeric}
+
+ tbl_summary(diabetes_baseline_well_being_numeric_final_analysis%>%dplyr::select(wdf_q4_1:wdf_q4_10), 
+                      type = list(
+                        c(wdf_q4_1:wdf_q4_10) ~ "continuous2",
+                        all_dichotomous() ~ "categorical"
+                        ,all_continuous() ~ "continuous2"
+                        )
+                      , statistic = all_continuous() ~ c(
+                        "{mean} ({sd})",
+                        "{median} ({p25}, {p75})",
+                        "{min}, {max}" )
+                      , digits = all_continuous() ~ 2
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Well being and Quality of life**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  modify_footnote(
+    all_stat_cols() ~ "Mean (SD); Median (IQR); Range"
+  )%>%
+  as_flex_table() #covert gtsummary object to knitrkable object. also use as_flex_table() to maintain identation, footnotes, spanning headers
+
+
+```
+
+
+# **Inferential statistics**
+
+## Gender
+
+```{r final variables by gender}
+
+  tbl_summary(diabetes_baseline_final_analysis,
+              by = wdf_q1_5,
+                      type = list(
+                        c(wdf_q3_5a_b_years, wdf_q3_13, wdf_q3_18:wdf_q3_21, wdf_q3_27:wdf_q3_28, 
+                          wdf_q3_31a:wdf_q3_31c, wdf_q3_31e:wdf_q3_31f, wdf_q3_33, wdf_q3_34a_b_hours,
+                          wdf_q3_36, wdf_q3_37a_b_hours, wdf_q3_39, wdf_q3_40a_b_hours,
+                          wdf_q3_42, wdf_q3_43a_b_hours, wdf_q3_45, wdf_q3_46a_b_hours,
+                          wdf_q3_47a_b_hours, wdf_q3_48) ~ "continuous2",
+                        all_dichotomous() ~ "categorical"
+                         ,all_continuous() ~ "continuous2"
+                        )
+                      , statistic = all_continuous() ~ c(
+                                      "{mean} ({sd})", 
+                                      "{median} ({p25}, {p75})", 
+                                      "{min}, {max}")
+                       , digits = list(all_continuous() ~ 2, 
+                                      all_categorical() ~ c(0, 1))
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Variables**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3),
+        c(wdf_q3_13, wdf_q3_42, wdf_q3_43a_b_hours, wdf_q3_45, wdf_q3_46a_b_hours) ~ "t.test",
+        test.args = c(wdf_q2_12, wdf_q3_24, wdf_q3_25b, wdf_q3_25e) ~ list(simulate.p.value=TRUE)) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  #add_overall() %>%
+  #add_difference() %>% #add column for difference between two group, confidence interval, and p-value
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Gender**")%>%
+  #modify_caption("**Table 1. Patient Characteristics**")%>%
+  modify_footnote(
+    all_stat_cols() ~ "Mean (SD); Median (IQR); Range; Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object. 
+
+```
+
+
+```{r Well being and Quality of life numeric by gender}
+
+  tbl_summary(diabetes_baseline_well_being_numeric_final_analysis%>%dplyr::select(wdf_q4_1:wdf_q4_10, wdf_q1_5),
+              by = wdf_q1_5,
+                      type = list(
+                        c(wdf_q4_1:wdf_q4_10) ~ "continuous2",
+                        all_dichotomous() ~ "categorical"
+                         ,all_continuous() ~ "continuous2"
+                        )
+                      , statistic = all_continuous() ~ c(
+                                      "{mean} ({sd})", 
+                                      "{median} ({p25}, {p75})", 
+                                      "{min}, {max}")
+                       , digits = all_continuous() ~ 2
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Well being and Quality of life**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  #add_overall() %>%
+  #add_difference() %>% #add column for difference between two group, confidence interval, and p-value
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Gender**")%>%
+  #modify_caption("**Table 1. Patient Characteristics**")%>%
+  modify_footnote(
+    all_stat_cols() ~ "Mean (SD); Median (IQR); Range; Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object. 
+
+```
+
+
+## Age group
+
+```{r final variables by age group}
+
+  tbl_summary(diabetes_baseline_final_analysis,
+              by = wdf_q1_4_age_group,
+                      type = list(
+                        c(wdf_q3_5a_b_years, wdf_q3_13, wdf_q3_18:wdf_q3_21, wdf_q3_27:wdf_q3_28, 
+                          wdf_q3_31a:wdf_q3_31c, wdf_q3_31e:wdf_q3_31f, wdf_q3_33, wdf_q3_34a_b_hours,
+                          wdf_q3_36, wdf_q3_37a_b_hours, wdf_q3_39, wdf_q3_40a_b_hours,
+                          wdf_q3_42, wdf_q3_43a_b_hours, wdf_q3_45, wdf_q3_46a_b_hours,
+                          wdf_q3_47a_b_hours, wdf_q3_48) ~ "continuous2",
+                        all_dichotomous() ~ "categorical"
+                         ,all_continuous() ~ "continuous2"
+                        )
+                      , statistic = all_continuous() ~ c(
+                                      "{mean} ({sd})", 
+                                      "{median} ({p25}, {p75})", 
+                                      "{min}, {max}")
+                       , digits = list(all_continuous() ~ 2, 
+                                      all_categorical() ~ c(0, 1))
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Variables**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3),
+        test.args = c(wdf_q2_4, wdf_q2_12, wdf_q3_24, wdf_q3_25a, wdf_q3_25b, wdf_q3_25c, wdf_q3_25e, wdf_q3_29a, wdf_q3_30,
+                      wdf_q4_1, wdf_q4_3, wdf_q4_5, wdf_q4_6, wdf_q4_8, wdf_q4_9, wdf_q4_10) ~ list(simulate.p.value=TRUE)) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  #add_overall() %>%
+  #add_difference() %>% #add column for difference between two group, confidence interval, and p-value
+  modify_spanning_header(c("stat_1", "stat_2", "stat_3") ~ "**Age group**")%>%
+  #modify_caption("**Table 1. Patient Characteristics**")%>%
+  modify_footnote(
+    all_stat_cols() ~ "Mean (SD); Median (IQR); Range; Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object. 
+
+```
+
+
+```{r Well being and Quality of life numeric by age group}
+
+  tbl_summary(diabetes_baseline_well_being_numeric_final_analysis%>%dplyr::select(wdf_q4_1:wdf_q4_10, wdf_q1_4_age_group),
+              by = wdf_q1_4_age_group,
+                      type = list(
+                        c(wdf_q4_1:wdf_q4_10) ~ "continuous2",
+                        all_dichotomous() ~ "categorical"
+                         ,all_continuous() ~ "continuous2"
+                        )
+                      , statistic = all_continuous() ~ c(
+                                      "{mean} ({sd})", 
+                                      "{median} ({p25}, {p75})", 
+                                      "{min}, {max}")
+                       , digits = all_continuous() ~ 2
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Well being and Quality of life**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  #add_overall() %>%
+  #add_difference() %>% #add column for difference between two group, confidence interval, and p-value
+  modify_spanning_header(c("stat_1", "stat_2", "stat_3") ~ "**Age group**")%>%
+  #modify_caption("**Table 1. Patient Characteristics**")%>%
+  modify_footnote(
+    all_stat_cols() ~ "Mean (SD); Median (IQR); Range; Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object. 
+
+```
+
+
+## Diabetes
+
+```{r final variables by diabetes}
+
+  tbl_summary(diabetes_baseline_final_analysis,
+              by = wdf_q2_1,
+                      type = list(
+                        c(wdf_q3_5a_b_years, wdf_q3_13, wdf_q3_18:wdf_q3_21, wdf_q3_27:wdf_q3_28, 
+                          wdf_q3_31a:wdf_q3_31c, wdf_q3_31e:wdf_q3_31f, wdf_q3_33, wdf_q3_34a_b_hours,
+                          wdf_q3_36, wdf_q3_37a_b_hours, wdf_q3_39, wdf_q3_40a_b_hours,
+                          wdf_q3_42, wdf_q3_43a_b_hours, wdf_q3_45, wdf_q3_46a_b_hours,
+                          wdf_q3_47a_b_hours, wdf_q3_48) ~ "continuous2",
+                        all_dichotomous() ~ "categorical"
+                         ,all_continuous() ~ "continuous2"
+                        )
+                      , statistic = all_continuous() ~ c(
+                                      "{mean} ({sd})", 
+                                      "{median} ({p25}, {p75})", 
+                                      "{min}, {max}")
+                       , digits = list(all_continuous() ~ 2, 
+                                      all_categorical() ~ c(0, 1))
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Variables**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3),
+        c(wdf_q3_13, wdf_q3_42, wdf_q3_43a_b_hours, wdf_q3_45, wdf_q3_46a_b_hours) ~ "t.test",
+        test.args = c(wdf_q2_12, wdf_q3_24, wdf_q3_25a, wdf_q3_25e) ~ list(simulate.p.value=TRUE)) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  #add_overall() %>%
+  #add_difference() %>% #add column for difference between two group, confidence interval, and p-value
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Diabetes**")%>%
+  #modify_caption("**Table 1. Patient Characteristics**")%>%
+  modify_footnote(
+    all_stat_cols() ~ "Mean (SD); Median (IQR); Range; Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object. 
+
+```
+
+
+```{r Well being and Quality of life numeric by diabetes}
+
+  tbl_summary(diabetes_baseline_well_being_numeric_final_analysis%>%dplyr::select(wdf_q4_1:wdf_q4_10, wdf_q2_1),
+              by = wdf_q2_1,
+                      type = list(
+                        c(wdf_q4_1:wdf_q4_10) ~ "continuous2",
+                        all_dichotomous() ~ "categorical"
+                         ,all_continuous() ~ "continuous2"
+                        )
+                      , statistic = all_continuous() ~ c(
+                                      "{mean} ({sd})", 
+                                      "{median} ({p25}, {p75})", 
+                                      "{min}, {max}")
+                       , digits = all_continuous() ~ 2
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Well being and Quality of life**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  #add_overall() %>%
+  #add_difference() %>% #add column for difference between two group, confidence interval, and p-value
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Diabetes**")%>%
+  #modify_caption("**Table 1. Patient Characteristics**")%>%
+  modify_footnote(
+    all_stat_cols() ~ "Mean (SD); Median (IQR); Range; Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object. 
+
+```
+
+
+## Hypertension
+
+```{r final variables by hypertension}
+
+  tbl_summary(diabetes_baseline_final_analysis,
+              by = wdf_q2_9,
+                      type = list(
+                        c(wdf_q3_5a_b_years, wdf_q3_13, wdf_q3_18:wdf_q3_21, wdf_q3_27:wdf_q3_28, 
+                          wdf_q3_31a:wdf_q3_31c, wdf_q3_31e:wdf_q3_31f, wdf_q3_33, wdf_q3_34a_b_hours,
+                          wdf_q3_36, wdf_q3_37a_b_hours, wdf_q3_39, wdf_q3_40a_b_hours,
+                          wdf_q3_42, wdf_q3_43a_b_hours, wdf_q3_45, wdf_q3_46a_b_hours,
+                          wdf_q3_47a_b_hours, wdf_q3_48) ~ "continuous2",
+                        all_dichotomous() ~ "categorical"
+                         ,all_continuous() ~ "continuous2"
+                        )
+                      , statistic = all_continuous() ~ c(
+                                      "{mean} ({sd})", 
+                                      "{median} ({p25}, {p75})", 
+                                      "{min}, {max}")
+                       , digits = list(all_continuous() ~ 2, 
+                                      all_categorical() ~ c(0, 1))
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Variables**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3),
+        c(wdf_q3_13, wdf_q3_42, wdf_q3_43a_b_hours, wdf_q3_45, wdf_q3_46a_b_hours) ~ "t.test",
+        test.args = c(wdf_q3_25b) ~ list(simulate.p.value=TRUE)) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  #add_overall() %>%
+  #add_difference() %>% #add column for difference between two group, confidence interval, and p-value
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Hypertension**")%>%
+  #modify_caption("**Table 1. Patient Characteristics**")%>%
+  modify_footnote(
+    all_stat_cols() ~ "Mean (SD); Median (IQR); Range; Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object. 
+
+```
+
+
+```{r Well being and Quality of life numeric by hypertension}
+
+  tbl_summary(diabetes_baseline_well_being_numeric_final_analysis%>%dplyr::select(wdf_q4_1:wdf_q4_10, wdf_q2_9),
+              by = wdf_q2_9,
+                      type = list(
+                        c(wdf_q4_1:wdf_q4_10) ~ "continuous2",
+                        all_dichotomous() ~ "categorical"
+                         ,all_continuous() ~ "continuous2"
+                        )
+                      , statistic = all_continuous() ~ c(
+                                      "{mean} ({sd})", 
+                                      "{median} ({p25}, {p75})", 
+                                      "{min}, {max}")
+                       , digits = all_continuous() ~ 2
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Well being and Quality of life**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  #add_overall() %>%
+  #add_difference() %>% #add column for difference between two group, confidence interval, and p-value
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Hypertension**")%>%
+  #modify_caption("**Table 1. Patient Characteristics**")%>%
+  modify_footnote(
+    all_stat_cols() ~ "Mean (SD); Median (IQR); Range; Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object. 
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
