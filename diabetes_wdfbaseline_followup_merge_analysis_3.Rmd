@@ -161,7 +161,7 @@ This analysis aims to assess impact of interventions on clinical parameters (i.e
   wdfbaseline_followup_final_analysis <- wdfbaseline_followup_clean%>%
   dplyr::select( study_id, wdf_q1_9:wdf_q1_12,
     #socio-demographics
-    wdf_q1_5, wdf_q1_4_age, wdf_q1_4_age_group,
+    wdf_q1_5, wdf_q1_4_age_group,
     #History of medical conditions and treatment
     wdf_q2_1, wdf_q2_9, wdf_q2_19a:wdf_q2_19f,
     #Lifestyle history/Health behaviour
@@ -228,11 +228,11 @@ diabetes_baseline_followup_variable_attr <- as.data.frame(labelled::generate_dic
 ```{r}
 
   wdfbaseline_followup_final_analysis%>%
-    dplyr::select(wdf_q1_9, wdf_q1_4_age, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_5a_b, wdf_q5_6_7, 
+    dplyr::select(wdf_q1_9, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_5a_b, wdf_q5_6_7, 
     wdf_q5_5_6_7_bmi, wdf_q5_8a_b_waist_hip_ratio )%>%
   #sjlabelled:::label_to_colnames() %>% #variable labels to column names.
   group_by(wdf_q1_9)%>%
-  shapiro_test(wdf_q1_4_age, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_5a_b, wdf_q5_6_7, 
+  shapiro_test(wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_5a_b, wdf_q5_6_7, 
     wdf_q5_5_6_7_bmi, wdf_q5_8a_b_waist_hip_ratio)%>%
   left_join(as.data.frame(labelled::generate_dictionary(wdfbaseline_followup_final_analysis))%>%
   dplyr::select(variable, label),
