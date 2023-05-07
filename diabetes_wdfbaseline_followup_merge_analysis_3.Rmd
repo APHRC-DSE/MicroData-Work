@@ -41,9 +41,8 @@ setwd(".")
 ```{r loading relevant packages, include=FALSE, results = "hide"}
 
 #library we need
-libs_diabetes <- c("googledrive" ,"tidyverse", "haven", "janitor", "knitr",
-                            "lubridate", "plotly", "gtsummary", "flextable", "sjlabelled", "rstatix",
-                   "lme4", "lmerTest")
+libs_diabetes <- c("googledrive" ,"tidyverse", "haven", "janitor", "knitr", "lubridate", "plotly", "gtsummary", "flextable",
+                   "sjlabelled", "rstatix", "lme4", "lmerTest")
 
 #install missing libraries
 
@@ -84,7 +83,7 @@ invisible(lapply(wdfbaseline_followup_list, load, .GlobalEnv))
 diabetes_baseline_followup_variable_attr <- as.data.frame(labelled::generate_dictionary(diabetes_baseline_final_clean))
 
 diabetes_baseline_followup_labels <- diabetes_baseline_followup_variable_attr%>%
-  select(variable, label)%>%
+  dplyr::select(variable, label)%>%
   deframe()
 
 ```
@@ -168,7 +167,7 @@ This analysis aims to assess impact of interventions on clinical parameters (i.e
     #Lifestyle history/Health behaviour
     wdf_q3_2, wdf_q3_7, wdf_q3_10, wdf_q3_14,
     #Clinical and anthropometric measurements
-    wdf_q5_0a:wdf_q5_0c, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_6_7, 
+    wdf_q5_0a:wdf_q5_0c, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_5a_b, wdf_q5_6_7, 
     wdf_q5_5_6_7_bmi, wdf_q5_8a_b_waist_hip_ratio
                 )%>%
   filter( wdf_q1_9 != "One year follow-up")%>%
@@ -229,11 +228,11 @@ diabetes_baseline_followup_variable_attr <- as.data.frame(labelled::generate_dic
 ```{r}
 
   wdfbaseline_followup_final_analysis%>%
-    dplyr::select(wdf_q1_9, wdf_q1_4_age, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_6_7, 
+    dplyr::select(wdf_q1_9, wdf_q1_4_age, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_5a_b, wdf_q5_6_7, 
     wdf_q5_5_6_7_bmi, wdf_q5_8a_b_waist_hip_ratio )%>%
   #sjlabelled:::label_to_colnames() %>% #variable labels to column names.
   group_by(wdf_q1_9)%>%
-  shapiro_test(wdf_q1_4_age, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_6_7, 
+  shapiro_test(wdf_q1_4_age, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_5a_b, wdf_q5_6_7, 
     wdf_q5_5_6_7_bmi, wdf_q5_8a_b_waist_hip_ratio)%>%
   left_join(as.data.frame(labelled::generate_dictionary(wdfbaseline_followup_final_analysis))%>%
   dplyr::select(variable, label),
@@ -468,6 +467,10 @@ Linear Mixed model adjusting for all response variables allowing intercept to va
 
 The REML = TRUE argument is used to specify that the REstricted Maximum Likelihood criterion be used rather than the loglikelihood criterion for optimization of parameter estimates.
 
+Random intercept model - Each individual is assigned a different intercept as we give the model with “(1|individual_id)”.Note also that the fixed effects (baseline-followup and other predictor variables) are all the same for all individual_id. We account for baseline-differences in response variables (bmi, bloodglucose..etc), but we assume that whatever the effect of intervention is, it’s going to be the same for all subjects and items.
+
+
+
 ```{r mixed model}
 
 diabetes_mixed_model <- wdfbaseline_followup_final_analysis%>%
@@ -491,31 +494,33 @@ diabetes_mixed_model <- wdfbaseline_followup_final_analysis%>%
   )%>%
   mutate(clinical_parameters = as_factor(clinical_parameters))%>%
   nest_by(clinical_parameters)%>%
-  mutate(lmm_model = list(lmer(value ~ wdf_q1_5 + wdf_q1_4_age_group + 
+  mutate(lmm_random_intercept_model = list(lmer(value ~ wdf_q1_5 + wdf_q1_4_age_group + 
                     wdf_q2_1 +wdf_q2_9 + wdf_q2_19a + wdf_q2_19b + wdf_q2_19c + wdf_q2_19d + wdf_q2_19e + wdf_q2_19f +
                       wdf_q3_2 + wdf_q3_7 + wdf_q3_10 + wdf_q3_14 + wdf_q5_0a + wdf_q5_0b + wdf_q5_0c + wdf_q1_9 +
              (1 | study_id), data = data, REML = TRUE)),
-        table_out = list(tbl_regression(lmm_model, exponentiate = FALSE, #broom.mixed package required
+        table_out_random_intercept = list(tbl_regression(lmm_random_intercept_model, exponentiate = FALSE, #broom.mixed package required
     pvalue_fun = ~style_pvalue(.x, digits = 3))%>%
   #add_global_p()%>% # add global p-value for categorical variables
   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
   bold_labels() %>%
   italicize_levels()%>% 
-  modify_header(label = "**Linear Mixed Model Regression**")%>% # update the column header
+  modify_header(label = "**Linear Mixed Model - random_intercept**")%>% # update the column header
   add_significance_stars(
     pattern = "{estimate} ({conf.low} to {conf.high}){stars}",
     hide_ci = TRUE, hide_se = TRUE , hide_p = FALSE) %>%
   modify_header(estimate ~ "**Beta (95% CI)**") %>%
   modify_footnote(estimate ~ "Beta, CI = Confidence Interval", abbreviation = TRUE)
-    ))
+    )
+  )
 
-tbl_merge(diabetes_mixed_model$table_out,
+tbl_merge(diabetes_mixed_model$table_out_random_intercept,
     tab_spanner = c("**Systolic Blood pressure**", "**Diastolic Blood pressure**", "**Blood glucose (mmol/L)**", "**BMI (kg/m2)**",
                     "**Weight in kgs**", "**Waist circumference**", "**Waist-to-hip ratio**", "**Hip circumference**"))
 
 
 ```
 
+### Linear mixed model metrics
 
 ```{r mixed model metrics}
 
@@ -525,7 +530,7 @@ for (i in 1:length(diabetes_mixed_model$clinical_parameters)){
   
   diabetes_mixed_model_metrics[i] <- print(
     kable(
-    list(broom::glance(diabetes_mixed_model$lmm_model[[i]])),
+    list(broom::glance(diabetes_mixed_model$lmm_random_intercept_model[[i]])),
     caption = diabetes_mixed_model$clinical_parameters[[i]] )
   
   )
@@ -534,7 +539,6 @@ for (i in 1:length(diabetes_mixed_model$clinical_parameters)){
 
 
 ```
-
 
 
 
