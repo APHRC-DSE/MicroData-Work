@@ -499,6 +499,7 @@ diabetes_mixed_model <- wdfbaseline_followup_final_analysis%>%
                       wdf_q3_2 + wdf_q3_7 + wdf_q3_10 + wdf_q3_14 + wdf_q5_0a + wdf_q5_0b + wdf_q5_0c + wdf_q1_9 +
              (1 | study_id), data = data, REML = TRUE)),
         table_out_random_intercept = list(tbl_regression(lmm_random_intercept_model, exponentiate = FALSE, #broom.mixed package required
+    estimate_fun = ~style_sigfig(.x, digits = 2),
     pvalue_fun = ~style_pvalue(.x, digits = 3))%>%
   #add_global_p()%>% # add global p-value for categorical variables
   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
