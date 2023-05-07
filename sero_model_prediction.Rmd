@@ -1,5 +1,5 @@
 ---
-title: "sero results data"
+title: "sero results data - base model predictions"
 author: "Reinpeter"
 date: "`r Sys.Date()`"
 output:
@@ -84,15 +84,21 @@ To build the best performing logistic model, We will use all relevant predictor 
 ```{r removing NA and selecting all relevant variables}
 
 sero_logistic_final <- sero_final_analysis%>%
-  mutate(across(c(spikepos, replace, q11_fever:q11_other_symptom, q13_hhm_no_symptoms, q13_hhmember_sick,
+  mutate(across(c(spikepos, replace, q11_fever:q11_lost_smell, q13_hhm_no_symptoms, q13_hhmember_sick,
                   q17_electricity:q17_none, q17_floor_type:q17_fuel_type, q12_hospitalized), ~ fct_rev(.x)))%>%
-  dplyr::select(-c(sample_type, q11_pain, q11_no_symptoms, q11_other_symptom, q23_sampling,
+  dplyr::select(-c(sample_type, q11_pain, q11_no_symptoms, q23_sampling,
                    q13_hhm_pain, q13_hhm_no_symptoms, q17_none, age_group_new))%>%
   drop_na()
 
 
 ```
 
+
+Dropped observations `r nrow(sero_final_analysis)-nrow(sero_logistic_final)`
+
+Final observations `r nrow(sero_logistic_final)`
+
+Final variables in model `r ncol(sero_logistic_final)`
 
 ```{r splitting data into training and testing, results="hide", include=FALSE}
 
@@ -658,6 +664,48 @@ tibble(model = c("full model", "step AIC", "step BIC", "Lasso-lambda min", "Lass
 
 ```
 
+# **Variable Importance**
+
+```{r Variable Importance}
+
+  kable(
+    caret::varImp(full_model)%>%arrange(desc(Overall))
+    , caption = "full_model")
+ 
+  kable(
+    caret::varImp(step_model_aic)%>%arrange(desc(Overall))
+  , caption = "step_model_aic")
+  
+  kable(
+    caret::varImp(step_model_bic)%>%arrange(desc(Overall))
+  , caption = "step_model_bic")
+  
+  kable(
+    caret::varImp(lasso_model_lambda_min, lambda=cv_lasso$lambda.min)%>%arrange(desc(Overall))
+  , caption = "lasso_model_lambda_min")
+ 
+  kable(
+    caret::varImp(lasso_model_lambda_lse, lambda=cv_lasso$lambda.1se)%>%arrange(desc(Overall))
+  , caption = "lasso_model_lambda_lse")
+  
+  kable(
+    caret::varImp(ridge_model_lambda_min, lambda=cv_ridge$lambda.min)%>%arrange(desc(Overall))
+  , caption = "ridge_model_lambda_min")
+ 
+  kable(
+    caret::varImp(ridge_model_lambda_lse, lambda=cv_ridge$lambda.1se)%>%arrange(desc(Overall))
+  , caption = "ridge_model_lambda_lse")
+  
+  kable(
+    caret::varImp(elastic_model_lambda_min, lambda=cv_elastic$lambda.min)%>%arrange(desc(Overall))
+  , caption = "elastic_model_lambda_min")
+ 
+  kable(
+    caret::varImp(elastic_model_lambda_lse, lambda=cv_elastic$lambda.1se)%>%arrange(desc(Overall))
+  , caption = "elastic_model_lambda_lse")
+  
+
+```
 
 
 
