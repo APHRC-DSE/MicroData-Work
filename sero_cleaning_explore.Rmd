@@ -269,9 +269,9 @@ sero_final_analysis <- sero_final_clean%>%
   dplyr::select( #socio-demographics
     spikepos, replace, q9_location, q8_gender, q6_education_level, age_group_new, q7_age_new, q6_religion,
                 #health symptoms of participants
-    q11_no_symptoms,q11_fever:q11_other_symptom, q11_muscular_pain:q11_joint_pain, q12_medical_attention, q12_miss_work, q12_hospitalized,
+    q11_no_symptoms,q11_fever:q11_lost_smell, q11_muscular_pain:q11_joint_pain, q12_medical_attention, q12_miss_work, q12_hospitalized,
                 #health symptoms of household members
-   q13_hhmember_sick, q15_hhm_died, q13_hhm_no_symptoms, q13_hhm_fever:q13_hhm_other_symptom, 
+   q13_hhmember_sick, q15_hhm_died, q13_hhm_no_symptoms, q13_hhm_fever:q13_hhm_lost_smell, 
                     q13_hhm_muscular_pain:q13_hhm_joint_pain, q14_hhm_medical_attention, q14_hhm_miss_work, q14_hhm_hospitalized,
                 #COVID-19
    q10_covid_contact, q16_own_risk, q16_info_edu, q16_hand_wash, q16_face_masks, q16_sanitizers,
@@ -348,7 +348,7 @@ Data collected electronically using (SARS COV-2 Sero-survey - Questionnaire) inc
 
 ```{r data description}
 
-  tbl_summary(sero_final_clean%>%dplyr::select(consent, replace, q5_status), 
+  tbl_summary(sero_final_clean%>%dplyr::select(consent, q5_status), 
                       type = list(
                         all_dichotomous() ~ "categorical")
               , digits = list(all_categorical() ~ c(0, 1))
