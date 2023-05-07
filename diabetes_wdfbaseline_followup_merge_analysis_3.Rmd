@@ -164,17 +164,20 @@ This analysis aims to assess impact of interventions on clinical parameters (i.e
     #socio-demographics
     wdf_q1_5, wdf_q1_4_age, wdf_q1_4_age_group,
     #History of medical conditions and treatment
-    wdf_q2_1, wdf_q2_9, wdf_q2_19a:wdf_q2_19b, wdf_q2_19d:wdf_q2_19f,
+    wdf_q2_1, wdf_q2_9, wdf_q2_19a:wdf_q2_19f,
     #Lifestyle history/Health behaviour
-    wdf_q3_2, wdf_q3_7, wdf_q3_14,
+    wdf_q3_2, wdf_q3_7, wdf_q3_10, wdf_q3_14,
     #Clinical and anthropometric measurements
-    wdf_q5_0a, wdf_q5_0c, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_6_7, 
+    wdf_q5_0a:wdf_q5_0c, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_6_7, 
     wdf_q5_5_6_7_bmi, wdf_q5_8a_b_waist_hip_ratio
                 )%>%
   filter( wdf_q1_9 != "One year follow-up")%>%
-  mutate(across(c(wdf_q2_1, wdf_q2_9, wdf_q3_2, wdf_q3_7, wdf_q3_14, wdf_q5_0a, wdf_q5_0c), ~fct_rev(.x)))%>%
+  mutate(across(c(wdf_q2_1, wdf_q2_9, wdf_q3_2, wdf_q3_7, wdf_q3_10, wdf_q3_14, wdf_q5_0a:wdf_q5_0c,
+                  wdf_q2_19a, wdf_q2_19d, wdf_q2_19e), ~fct_rev(.x)),
+         across(c(wdf_q2_19b, wdf_q2_19c, wdf_q2_19f), ~factor(.x, levels = c("No", "Yes", "Dont Know"))))%>%
   mutate_if(is.factor, ~fct_drop(.x #, only = c("")
-            )) #drop unused factor levels
+            ))%>% #drop unused factor levels
+  labelled::set_variable_labels(!!!diabetes_baseline_followup_labels[names(diabetes_baseline_followup_labels) %in% names(.)]) #labeling variables from data dictionary
 
 diabetes_baseline_followup_variable_attr <- as.data.frame(labelled::generate_dictionary(wdfbaseline_followup_final_analysis))%>%
   dplyr::select(variable, label)
@@ -458,6 +461,7 @@ tbl_merge(hypertension_paired$table_out,
 
 ```
 
+
 ## Linear mixed model
 
 Linear Mixed model adjusting for all response variables allowing intercept to vary by invividual id.
@@ -469,11 +473,11 @@ The REML = TRUE argument is used to specify that the REstricted Maximum Likeliho
 diabetes_mixed_model <- wdfbaseline_followup_final_analysis%>%
   dplyr::select(study_id, wdf_q1_9, wdf_q1_5, wdf_q1_4_age_group,
                 #History of medical conditions and treatment
-    wdf_q2_1, wdf_q2_9, wdf_q2_19a:wdf_q2_19b, wdf_q2_19d:wdf_q2_19f,
+    wdf_q2_1, wdf_q2_9, wdf_q2_19a:wdf_q2_19f,
     #Lifestyle history/Health behaviour
-    wdf_q3_2, wdf_q3_7, wdf_q3_14,
+    wdf_q3_2, wdf_q3_7, wdf_q3_10, wdf_q3_14,
     #Clinical and anthropometric measurements
-    wdf_q5_0a, wdf_q5_0c, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_6_7, 
+    wdf_q5_0a:wdf_q5_0c, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_6_7, 
     wdf_q5_5_6_7_bmi, wdf_q5_8a_b_waist_hip_ratio)%>%
   drop_na()%>%
   group_by(study_id)%>%
@@ -488,8 +492,8 @@ diabetes_mixed_model <- wdfbaseline_followup_final_analysis%>%
   mutate(clinical_parameters = as_factor(clinical_parameters))%>%
   nest_by(clinical_parameters)%>%
   mutate(lmm_model = list(lmer(value ~ wdf_q1_5 + wdf_q1_4_age_group + 
-                    wdf_q2_1 +wdf_q2_9 + wdf_q2_19a + wdf_q2_19b + wdf_q2_19d + wdf_q2_19e + wdf_q2_19f +
-                      wdf_q3_2 + wdf_q3_7 + wdf_q3_14 + wdf_q5_0a + wdf_q5_0c + wdf_q1_9 +
+                    wdf_q2_1 +wdf_q2_9 + wdf_q2_19a + wdf_q2_19b + wdf_q2_19c + wdf_q2_19d + wdf_q2_19e + wdf_q2_19f +
+                      wdf_q3_2 + wdf_q3_7 + wdf_q3_10 + wdf_q3_14 + wdf_q5_0a + wdf_q5_0b + wdf_q5_0c + wdf_q1_9 +
              (1 | study_id), data = data, REML = TRUE)),
         table_out = list(tbl_regression(lmm_model, exponentiate = FALSE, #broom.mixed package required
     pvalue_fun = ~style_pvalue(.x, digits = 3))%>%
