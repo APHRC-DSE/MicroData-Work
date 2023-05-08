@@ -18,13 +18,11 @@ output:
 ---
 
 
-
 ```{r setup, results="hide", include=FALSE}
 
 ## Set Chunk requirements
 knitr::opts_chunk$set(#include = TRUE,
                       echo=FALSE, message = FALSE, warning = FALSE)
-
 
 ```
 
@@ -107,7 +105,6 @@ diabetes_followup_final_clean_merge <- diabetes_followup_final_clean%>%
                 wdf_q5_0a_followup:wdf_q5_4_followup, wdf_q5_5a_followup, wdf_q5_5b_followup, wdf_q5_61_followup:wdf_q5_11_followup,
                 wdf_q1_4_followup_age:wdf_q5_10_followup_group)
 
-
 ```
 
 
@@ -121,7 +118,6 @@ wdfbaseline_followup_clean <- rbind(diabetes_baseline_final_clean_merge,
     wdf_q1_9 = factor(wdf_q1_9, levels = c("Baseline", "Six month follow-up", "One year follow-up"))
     )%>%
   labelled::set_variable_labels(!!!diabetes_baseline_followup_labels[names(diabetes_baseline_followup_labels) %in% names(.)]) #labeling variables from data dictionary
-
 
 ```
 
@@ -147,7 +143,6 @@ readr::write_csv(wdfbaseline_followup_clean_etl1,"wdfbaseline_followup_clean_etl
 ```
 
 
-
 # **Introduction**
 
 This study titled [**Improving the lives of diabetics in Nairobi's slum through access to quality health care**](https://microdataportal.aphrc.org/index.php/catalog/75) was under the **Health and Well-Being (HaW) Theme** and aimed to improve the management of diabetes and other comorbidities with emphasis on the use of integrated guidelines and patient empowerment. It was carried out from Individual respondents living in Korogocho and Viwandani informal settlements in Nairobi.
@@ -157,7 +152,6 @@ This analysis aims to assess impact of interventions on clinical parameters (i.e
 ```{r diabetes baseline followup final data for analysis, results="hide", include=FALSE}
 
 # make baseline and 6month follow up dataset with variables for descriptive and inferential statistics
-
   wdfbaseline_followup_final_analysis <- wdfbaseline_followup_clean%>%
   dplyr::select( study_id, wdf_q1_9:wdf_q1_12,
     #socio-demographics
@@ -171,9 +165,8 @@ This analysis aims to assess impact of interventions on clinical parameters (i.e
     wdf_q5_5_6_7_bmi, wdf_q5_8a_b_waist_hip_ratio
                 )%>%
   filter( wdf_q1_9 != "One year follow-up")%>%
-  mutate(across(c(wdf_q2_1, wdf_q2_9, wdf_q3_2, wdf_q3_7, wdf_q3_10, wdf_q3_14, wdf_q5_0a:wdf_q5_0c,
-                  wdf_q2_19a, wdf_q2_19d, wdf_q2_19e), ~fct_rev(.x)),
-         across(c(wdf_q2_19b, wdf_q2_19c, wdf_q2_19f), ~factor(.x, levels = c("No", "Yes", "Dont Know"))))%>%
+  mutate(across(c(wdf_q2_1, wdf_q2_9, wdf_q3_2, wdf_q3_7, wdf_q3_10, wdf_q3_14, wdf_q5_0a:wdf_q5_0c), ~fct_rev(.x)),
+         across(c(wdf_q2_19a:wdf_q2_19f), ~factor(.x, levels = c("No", "Yes", "Dont Know"))))%>%
   mutate_if(is.factor, ~fct_drop(.x #, only = c("")
             ))%>% #drop unused factor levels
   labelled::set_variable_labels(!!!diabetes_baseline_followup_labels[names(diabetes_baseline_followup_labels) %in% names(.)]) #labeling variables from data dictionary
@@ -189,7 +182,6 @@ diabetes_baseline_followup_variable_attr <- as.data.frame(labelled::generate_dic
 ## Follow-up Rate
 
 ```{r final variables by data collection round}
-
 
  tbl_summary(wdfbaseline_followup_final_analysis%>%
     dplyr::select(-study_id),
@@ -238,7 +230,6 @@ diabetes_baseline_followup_variable_attr <- as.data.frame(labelled::generate_dic
   dplyr::select(variable, label),
   by = c("variable" = "variable"))%>%
   kable()
-
 
 ```
 
@@ -292,9 +283,7 @@ tbl_merge(overall_paired$table_out,
     tab_spanner = c("**Systolic Blood pressure**", "**Diastolic Blood pressure**", "**Blood glucose (mmol/L)**", "**BMI (kg/m2)**",
                     "**Weight in kgs**", "**Waist circumference**", "**Waist-to-hip ratio**", "**Hip circumference**"))
 
-
 ```
-
 
 ### Gender
 
@@ -347,9 +336,7 @@ tbl_merge(gender_paired$table_out,
     tab_spanner = c("**Systolic Blood pressure**", "**Diastolic Blood pressure**", "**Blood glucose (mmol/L)**", "**BMI (kg/m2)**",
                     "**Weight in kgs**", "**Waist circumference**", "**Waist-to-hip ratio**", "**Hip circumference**"))
 
-
 ```
-
 
 ### Diabetes
 
@@ -402,9 +389,7 @@ tbl_merge(diabetes_paired$table_out,
     tab_spanner = c("**Systolic Blood pressure**", "**Diastolic Blood pressure**", "**Blood glucose (mmol/L)**", "**BMI (kg/m2)**",
                     "**Weight in kgs**", "**Waist circumference**", "**Waist-to-hip ratio**", "**Hip circumference**"))
 
-
 ```
-
 
 ### Hypertension
 
@@ -457,19 +442,17 @@ tbl_merge(hypertension_paired$table_out,
     tab_spanner = c("**Systolic Blood pressure**", "**Diastolic Blood pressure**", "**Blood glucose (mmol/L)**", "**BMI (kg/m2)**",
                     "**Weight in kgs**", "**Waist circumference**", "**Waist-to-hip ratio**", "**Hip circumference**"))
 
-
 ```
 
-
-## Linear mixed model
+## Linear mixed effect model
 
 Linear Mixed model adjusting for all response variables allowing intercept to vary by invividual id.
 
 The REML = TRUE argument is used to specify that the REstricted Maximum Likelihood criterion be used rather than the loglikelihood criterion for optimization of parameter estimates.
 
+### Random intercept model
+
 Random intercept model - Each individual is assigned a different intercept as we give the model with “(1|individual_id)”.Note also that the fixed effects (baseline-followup and other predictor variables) are all the same for all individual_id. We account for baseline-differences in response variables (bmi, bloodglucose..etc), but we assume that whatever the effect of intervention is, it’s going to be the same for all subjects and items.
-
-
 
 ```{r mixed model}
 
@@ -494,10 +477,10 @@ diabetes_mixed_model <- wdfbaseline_followup_final_analysis%>%
   )%>%
   mutate(clinical_parameters = as_factor(clinical_parameters))%>%
   nest_by(clinical_parameters)%>%
-  mutate(lmm_random_intercept_model = list(lmer(value ~ wdf_q1_5 + wdf_q1_4_age_group + 
-                    wdf_q2_1 +wdf_q2_9 + wdf_q2_19a + wdf_q2_19b + wdf_q2_19c + wdf_q2_19d + wdf_q2_19e + wdf_q2_19f +
-                      wdf_q3_2 + wdf_q3_7 + wdf_q3_10 + wdf_q3_14 + wdf_q5_0a + wdf_q5_0b + wdf_q5_0c + wdf_q1_9 +
-             (1 | study_id), data = data, REML = TRUE)),
+  mutate(lmm_random_intercept_model = list(lmer(value ~ wdf_q1_5 + wdf_q1_4_age_group + wdf_q2_1 +wdf_q2_9 + wdf_q2_19a + 
+        wdf_q2_19b + wdf_q2_19c + wdf_q2_19d + wdf_q2_19e + wdf_q2_19f + wdf_q3_2 + wdf_q3_7 + wdf_q3_10 + wdf_q3_14 + 
+          wdf_q5_0a + wdf_q5_0b + wdf_q5_0c + wdf_q1_9 + (1 | study_id), data = data, REML = TRUE)),
+         lmm_random_intercept_null_model = list(lmer(value ~ 1 + (1 | study_id), data = data, REML = TRUE)),
         table_out_random_intercept = list(tbl_regression(lmm_random_intercept_model, exponentiate = FALSE, #broom.mixed package required
     estimate_fun = ~style_sigfig(.x, digits = 2),
     pvalue_fun = ~style_pvalue(.x, digits = 3))%>%
@@ -505,7 +488,7 @@ diabetes_mixed_model <- wdfbaseline_followup_final_analysis%>%
   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
   bold_labels() %>%
   italicize_levels()%>% 
-  modify_header(label = "**Linear Mixed Model - random_intercept**")%>% # update the column header
+  modify_header(label = "**Linear Mixed full Model - random_intercept**")%>% # update the column header
   add_significance_stars(
     pattern = "{estimate} ({conf.low} to {conf.high}){stars}",
     hide_ci = TRUE, hide_se = TRUE , hide_p = FALSE) %>%
@@ -518,21 +501,37 @@ tbl_merge(diabetes_mixed_model$table_out_random_intercept,
     tab_spanner = c("**Systolic Blood pressure**", "**Diastolic Blood pressure**", "**Blood glucose (mmol/L)**", "**BMI (kg/m2)**",
                     "**Weight in kgs**", "**Waist circumference**", "**Waist-to-hip ratio**", "**Hip circumference**"))
 
-
 ```
 
 ### Linear mixed model metrics
 
 ```{r mixed model metrics}
 
-diabetes_mixed_model_metrics <- list()
+diabetes_random_intercept_model_metrics <- list()
+
+diabetes_random_intercept_null_model_metrics <- list()
+
+diabetes_mixed_model_comparison <- list()
 
 for (i in 1:length(diabetes_mixed_model$clinical_parameters)){
   
-  diabetes_mixed_model_metrics[i] <- print(
+  diabetes_random_intercept_model_metrics[i] <- print(
     kable(
     list(broom::glance(diabetes_mixed_model$lmm_random_intercept_model[[i]])),
-    caption = diabetes_mixed_model$clinical_parameters[[i]] )
+    caption = paste0("full model",diabetes_mixed_model$clinical_parameters[[i]]) )
+  )
+  
+  diabetes_random_intercept_null_model_metrics[i] <- print(
+    kable(
+    list(broom::glance(diabetes_mixed_model$lmm_random_intercept_null_model[[i]])),
+    caption = paste0("null model", diabetes_mixed_model$clinical_parameters[[i]]) )
+  
+  )
+  
+  diabetes_mixed_model_comparison[i] <- print(
+    kable(
+    list(anova(diabetes_mixed_model$lmm_random_intercept_null_model[[i]], diabetes_mixed_model$lmm_random_intercept_model[[i]])),
+    caption = paste0("null model-full model", diabetes_mixed_model$clinical_parameters[[i]]) )
   
   )
   
@@ -541,6 +540,112 @@ for (i in 1:length(diabetes_mixed_model$clinical_parameters)){
 
 ```
 
+
+## Change in score - linear regression
+
+```{r Change in score linear regression model}
+
+diabetes_change_in_score_model <- diabetes_baseline_final_clean%>%
+  dplyr::select(study_id, wdf_q1_9, wdf_q1_5, wdf_q1_4_age_group,
+                #History of medical conditions and treatment
+    wdf_q2_1, wdf_q2_9, wdf_q2_19a:wdf_q2_19f,
+    #Lifestyle history/Health behaviour
+    wdf_q3_2, wdf_q3_7, wdf_q3_10, wdf_q3_14,
+    #Clinical and anthropometric measurements
+    wdf_q5_0a:wdf_q5_0c, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_6_7, 
+    wdf_q5_5_6_7_bmi, wdf_q5_8a_b_waist_hip_ratio)%>%
+  left_join(diabetes_followup_final_clean%>%
+              filter(wdf_q1_9_followup == "Six month follow-up")%>%
+              dplyr::select(study_id, wdf_q5_8a_followup, wdf_q5_8b_followup, wdf_q5_10_followup, wdf_q5_1_2_3a_followup,
+                            wdf_q5_1_2_3b_followup, wdf_q5_6_7_followup, wdf_q5_5_6_7_followup_bmi, wdf_q5_8a_b_followup_waist_hip_ratio),
+            by = c("study_id" = "study_id"))%>%
+    mutate(across(c(wdf_q2_1, wdf_q2_9, wdf_q3_2, wdf_q3_7, wdf_q3_10, wdf_q3_14, wdf_q5_0a:wdf_q5_0c), ~fct_rev(.x)),
+         across(c(wdf_q2_19a:wdf_q2_19f), ~factor(.x, levels = c("No", "Yes", "Dont Know"))),
+         change_wdf_q5_8a = wdf_q5_8a_followup - wdf_q5_8a,
+         change_wdf_q5_8b = wdf_q5_8b_followup - wdf_q5_8b,
+         change_wdf_q5_10 = wdf_q5_10_followup - wdf_q5_10,
+         change_wdf_q5_1_2_3a = wdf_q5_1_2_3a_followup - wdf_q5_1_2_3a,
+         change_wdf_q5_1_2_3b = wdf_q5_1_2_3b_followup - wdf_q5_1_2_3b,
+         change_wdf_q5_6_7 = wdf_q5_6_7_followup - wdf_q5_6_7,
+         change_wdf_q5_5_6_7_bmi = wdf_q5_5_6_7_followup_bmi - wdf_q5_5_6_7_bmi,
+         change_wdf_q5_8a_b_waist_hip_ratio = wdf_q5_8a_b_followup_waist_hip_ratio - wdf_q5_8a_b_waist_hip_ratio
+         )%>%
+  dplyr::select(-c(wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_6_7, 
+    wdf_q5_5_6_7_bmi, wdf_q5_8a_b_waist_hip_ratio, wdf_q5_8a_followup, wdf_q5_8b_followup, wdf_q5_10_followup, wdf_q5_1_2_3a_followup,
+                            wdf_q5_1_2_3b_followup, wdf_q5_6_7_followup, wdf_q5_5_6_7_followup_bmi, wdf_q5_8a_b_followup_waist_hip_ratio))%>%
+  labelled::set_variable_labels(!!!diabetes_baseline_followup_labels[names(diabetes_baseline_followup_labels) %in% names(.)])%>% #labeling variables from data dictionary
+  drop_na()%>%
+  pivot_longer(
+    cols = c(change_wdf_q5_8a, change_wdf_q5_8b, change_wdf_q5_10, change_wdf_q5_1_2_3a, change_wdf_q5_1_2_3b, change_wdf_q5_6_7,
+             change_wdf_q5_5_6_7_bmi, change_wdf_q5_8a_b_waist_hip_ratio),
+    names_to = "clinical_parameters",
+    values_to = "value"
+  )%>%
+  mutate(clinical_parameters = as_factor(clinical_parameters))%>%
+  nest_by(clinical_parameters)%>%
+  mutate(lm_model = list(glm(value ~ wdf_q1_5 + wdf_q1_4_age_group + wdf_q2_1 +wdf_q2_9 + wdf_q2_19a + 
+        wdf_q2_19b + wdf_q2_19c + wdf_q2_19d + wdf_q2_19e + wdf_q2_19f + wdf_q3_2 + wdf_q3_7 + wdf_q3_10 + wdf_q3_14 + 
+          wdf_q5_0a + wdf_q5_0b + wdf_q5_0c , data = data, family = gaussian  )),
+        lm_null_model = list(glm(value ~ 1 , data = data, family = gaussian  )),
+        table_out_lm = list(tbl_regression(lm_model, exponentiate = FALSE, #broom.mixed package required
+    estimate_fun = ~style_sigfig(.x, digits = 2),
+    pvalue_fun = ~style_pvalue(.x, digits = 3))%>%
+  #add_global_p()%>% # add global p-value for categorical variables
+  bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  bold_labels() %>%
+  italicize_levels()%>% 
+  modify_header(label = "**Linear regression**")%>% # update the column header
+  add_significance_stars(
+    pattern = "{estimate} ({conf.low} to {conf.high}){stars}",
+    hide_ci = TRUE, hide_se = TRUE , hide_p = FALSE) %>%
+  modify_header(estimate ~ "**Beta (95% CI)**") %>%
+  modify_footnote(estimate ~ "Beta, CI = Confidence Interval", abbreviation = TRUE)
+    )
+  )
+
+
+tbl_merge(diabetes_change_in_score_model$table_out_lm,
+    tab_spanner = c("**Systolic Blood pressure**", "**Diastolic Blood pressure**", "**Blood glucose (mmol/L)**", "**BMI (kg/m2)**",
+                    "**Weight in kgs**", "**Waist circumference**", "**Waist-to-hip ratio**", "**Hip circumference**"))
+
+```
+
+
+### change in score - linear regression model metrics
+
+```{r Change in score linear regression model metrics}
+
+diabetes_change_in_score_model_metrics <- list()
+
+diabetes_change_in_score_null_model_metrics <- list()
+
+diabetes_change_in_score_model_comparison <- list()
+
+for (i in 1:length(diabetes_change_in_score_model$clinical_parameters)){
+  
+  diabetes_change_in_score_model_metrics[i] <- print(
+    kable(
+    list(broom::glance(diabetes_change_in_score_model$lm_model[[i]])),
+    caption = paste0("full model",diabetes_change_in_score_model$clinical_parameters[[i]]) )
+  )
+  
+  diabetes_change_in_score_null_model_metrics[i] <- print(
+    kable(
+    list(broom::glance(diabetes_change_in_score_model$lm_null_model[[i]])),
+    caption = paste0("null model", diabetes_change_in_score_model$clinical_parameters[[i]]) )
+  
+  )
+  
+  diabetes_change_in_score_model_comparison[i] <- print(
+    kable(
+    list(anova(diabetes_change_in_score_model$lm_null_model[[i]], diabetes_change_in_score_model$lm_model[[i]])),
+    caption = paste0("null model-full model", diabetes_change_in_score_model$clinical_parameters[[i]]) )
+  )
+  
+}
+
+
+```
 
 
 
