@@ -521,12 +521,19 @@ for (i in 1:length(diabetes_mixed_model$clinical_parameters)){
     caption = paste0("full model",diabetes_mixed_model$clinical_parameters[[i]]) )
   )
   
+}
+
+for (i in 1:length(diabetes_mixed_model$clinical_parameters)){
+  
   diabetes_random_intercept_null_model_metrics[i] <- print(
     kable(
     list(broom::glance(diabetes_mixed_model$lmm_random_intercept_null_model[[i]])),
     caption = paste0("null model", diabetes_mixed_model$clinical_parameters[[i]]) )
-  
   )
+  
+}
+
+for (i in 1:length(diabetes_mixed_model$clinical_parameters)){
   
   diabetes_mixed_model_comparison[i] <- print(
     kable(
@@ -536,6 +543,7 @@ for (i in 1:length(diabetes_mixed_model$clinical_parameters)){
   )
   
 }
+
 
 
 ```
@@ -621,20 +629,28 @@ diabetes_change_in_score_null_model_metrics <- list()
 
 diabetes_change_in_score_model_comparison <- list()
 
-for (i in 1:length(diabetes_change_in_score_model$clinical_parameters)){
+for (j in 1:length(diabetes_change_in_score_model$clinical_parameters)){
   
   diabetes_change_in_score_model_metrics[i] <- print(
     kable(
     list(broom::glance(diabetes_change_in_score_model$lm_model[[i]])),
     caption = paste0("full model",diabetes_change_in_score_model$clinical_parameters[[i]]) )
   )
+}
+
+
+for (j in 1:length(diabetes_change_in_score_model$clinical_parameters)){
   
   diabetes_change_in_score_null_model_metrics[i] <- print(
     kable(
     list(broom::glance(diabetes_change_in_score_model$lm_null_model[[i]])),
     caption = paste0("null model", diabetes_change_in_score_model$clinical_parameters[[i]]) )
-  
-  )
+   )
+
+}
+
+
+for (j in 1:length(diabetes_change_in_score_model$clinical_parameters)){
   
   diabetes_change_in_score_model_comparison[i] <- print(
     kable(
