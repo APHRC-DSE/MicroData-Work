@@ -78,9 +78,21 @@ invisible(lapply(wdfbaseline_followup_list, load, .GlobalEnv))
 
 #Creating a named vector to quickly assign the variable labels using baseline variable labels
 
-diabetes_baseline_followup_variable_attr <- as.data.frame(labelled::generate_dictionary(diabetes_baseline_final_clean))
+diabetes_baseline_variable_attr <- as.data.frame(labelled::generate_dictionary(diabetes_baseline_final_clean))
 
-diabetes_baseline_followup_labels <- diabetes_baseline_followup_variable_attr%>%
+diabetes_baseline_variable_attr1 <- as.data.frame(labelled::generate_dictionary(diabetes_baseline_final_clean%>%rename_with(~paste0(.x,"_baseline"))))
+
+diabetes_followup_variable_attr <- as.data.frame(labelled::generate_dictionary(diabetes_followup_final_clean))
+
+diabetes_baseline_labels <- diabetes_baseline_variable_attr%>%
+  dplyr::select(variable, label)%>%
+  deframe()
+
+diabetes_baseline_labels1 <- diabetes_baseline_variable_attr1%>%
+  dplyr::select(variable, label)%>%
+  deframe()
+
+diabetes_followup_labels <- diabetes_followup_variable_attr%>%
   dplyr::select(variable, label)%>%
   deframe()
 
@@ -108,28 +120,59 @@ diabetes_followup_final_clean_merge <- diabetes_followup_final_clean%>%
 ```
 
 
-```{r merging data rowwise, results="hide", include=FALSE}
+```{r merging all data rowwise}
+#merge all columns in original data minus new-variables created from calculations
+wdfbaseline_followup_cleaned_all_columns <- bind_rows(
+  diabetes_baseline_final_clean%>%
+  dplyr::select(study_id:wdf_q5_11)%>%
+                mutate(wdf_q1_9 = ifelse(wdf_q1_9 == "B", "Baseline", wdf_q1_9),
+             wdf_q1_9 = factor(wdf_q1_9, levels = c("Baseline", "Six month follow-up", "One year follow-up"))
+               )%>%
+  rename_with( ~paste0(.x,"_baseline", recycle0 = TRUE), #`recycle0 = TRUE` to ensure that empty selections are recycled correctly
+               .cols = (names(.)[!(names(.)%in% names(diabetes_baseline_final_clean_merge))]))%>%
+  labelled::set_variable_labels(!!!diabetes_baseline_labels[names(diabetes_baseline_labels) %in% names(.)]) #labeling variables from data dictionary
+,
+diabetes_followup_final_clean%>%
+  dplyr::select(study_id:wdf_q3_15_followup)%>%
+  rename_with( ~gsub("_followup", "", .x, fixed = TRUE), #`fixed= TRUE` to ensure pattern be matched as is. Overrides all conflicting arguments
+               .cols = (names(.)[names(.)%in% names(diabetes_followup_final_clean_merge)]))%>%
+  rename(wdf_q5_6 = wdf_q5_61)
+)%>%
+  labelled::set_variable_labels(!!!diabetes_baseline_labels[names(diabetes_baseline_labels) %in% names(.)])%>% #labeling variables from data dictionary
+  labelled::set_variable_labels(!!!diabetes_baseline_labels1[names(diabetes_baseline_labels1) %in% names(.)])%>% #labeling variables from data dictionary
+  labelled::set_variable_labels(!!!diabetes_followup_labels[names(diabetes_followup_labels) %in% names(.)]) #labeling variables from data dictionary
 
-wdfbaseline_followup_clean <- rbind(diabetes_baseline_final_clean_merge,
+
+readr::write_csv(wdfbaseline_followup_cleaned_all_columns,"wdfbaseline_followup_cleaned_final.csv", na="")
+
+haven::write_dta(wdfbaseline_followup_cleaned_all_columns,"wdfbaseline_followup_cleaned_final.dta")
+
+```
+
+
+
+```{r merging matched data rowwise, results="hide", include=FALSE}
+#merge rows with only matched columns
+wdfbaseline_followup_cleaned_matched_columns <- rbind(diabetes_baseline_final_clean_merge,
                    data.table::setnames(diabetes_followup_final_clean_merge,
                                         names(diabetes_baseline_final_clean_merge)
                    ))%>%
   mutate(wdf_q1_9 = ifelse(wdf_q1_9 == "B", "Baseline", wdf_q1_9),
     wdf_q1_9 = factor(wdf_q1_9, levels = c("Baseline", "Six month follow-up", "One year follow-up"))
     )%>%
-  labelled::set_variable_labels(!!!diabetes_baseline_followup_labels[names(diabetes_baseline_followup_labels) %in% names(.)]) #labeling variables from data dictionary
+  labelled::set_variable_labels(!!!diabetes_baseline_labels[names(diabetes_baseline_labels) %in% names(.)]) #labeling variables from data dictionary
 
 ```
 
 
 ```{r subset data for etl, results="hide", include=FALSE}
-
-wdfbaseline_followup_clean_etl <- wdfbaseline_followup_clean%>%
+#data set with selected columns for ETL
+wdfbaseline_followup_clean_etl <- wdfbaseline_followup_cleaned_matched_columns%>%
   dplyr::select(study_id:wdf_q1_2, wdf_q1_4:wdf_q1_5, wdf_q1_9, wdf_q1_10,
                 wdf_q2_1:wdf_q2_5, wdf_q2_9:wdf_q2_13, wdf_q2_17a:wdf_q2_19f, wdf_q5_0a:wdf_q5_11
   )
 
-wdfbaseline_followup_clean_etl1 <- wdfbaseline_followup_clean%>%
+wdfbaseline_followup_clean_etl1 <- wdfbaseline_followup_cleaned_matched_columns%>%
   dplyr::select(study_id:wdf_q1_2, wdf_q1_4:wdf_q1_5, wdf_q1_9, wdf_q1_10,
                 wdf_q2_1:wdf_q2_5, wdf_q2_9:wdf_q2_13, wdf_q2_17a:wdf_q2_19f, wdf_q5_0a:wdf_q5_11
   )%>%
@@ -152,7 +195,7 @@ This analysis aims to assess impact of interventions on clinical parameters (i.e
 ```{r diabetes baseline followup final data for analysis, results="hide", include=FALSE}
 
 # make baseline and 6month follow up dataset with variables for descriptive and inferential statistics
-  wdfbaseline_followup_final_analysis <- wdfbaseline_followup_clean%>%
+  wdfbaseline_followup_final_analysis <- wdfbaseline_followup_cleaned_matched_columns%>%
   dplyr::select( study_id, wdf_q1_9:wdf_q1_12,
     #socio-demographics
     wdf_q1_5, wdf_q1_4_age_group,
@@ -169,10 +212,8 @@ This analysis aims to assess impact of interventions on clinical parameters (i.e
          across(c(wdf_q2_19a:wdf_q2_19f), ~factor(.x, levels = c("No", "Yes", "Dont Know"))))%>%
   mutate_if(is.factor, ~fct_drop(.x #, only = c("")
             ))%>% #drop unused factor levels
-  labelled::set_variable_labels(!!!diabetes_baseline_followup_labels[names(diabetes_baseline_followup_labels) %in% names(.)]) #labeling variables from data dictionary
+  labelled::set_variable_labels(!!!diabetes_baseline_labels[names(diabetes_baseline_labels) %in% names(.)]) #labeling variables from data dictionary
 
-diabetes_baseline_followup_variable_attr <- as.data.frame(labelled::generate_dictionary(wdfbaseline_followup_final_analysis))%>%
-  dplyr::select(variable, label)
 
 ```
 
@@ -544,8 +585,6 @@ for (i in 1:length(diabetes_mixed_model$clinical_parameters)){
   
 }
 
-
-
 ```
 
 
@@ -581,7 +620,7 @@ diabetes_change_in_score_model <- diabetes_baseline_final_clean%>%
   dplyr::select(-c(wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_6_7, 
     wdf_q5_5_6_7_bmi, wdf_q5_8a_b_waist_hip_ratio, wdf_q5_8a_followup, wdf_q5_8b_followup, wdf_q5_10_followup, wdf_q5_1_2_3a_followup,
                             wdf_q5_1_2_3b_followup, wdf_q5_6_7_followup, wdf_q5_5_6_7_followup_bmi, wdf_q5_8a_b_followup_waist_hip_ratio))%>%
-  labelled::set_variable_labels(!!!diabetes_baseline_followup_labels[names(diabetes_baseline_followup_labels) %in% names(.)])%>% #labeling variables from data dictionary
+  labelled::set_variable_labels(!!!diabetes_baseline_labels[names(diabetes_baseline_labels) %in% names(.)])%>% #labeling variables from data dictionary
   drop_na()%>%
   pivot_longer(
     cols = c(change_wdf_q5_8a, change_wdf_q5_8b, change_wdf_q5_10, change_wdf_q5_1_2_3a, change_wdf_q5_1_2_3b, change_wdf_q5_6_7,
@@ -610,7 +649,6 @@ diabetes_change_in_score_model <- diabetes_baseline_final_clean%>%
   modify_footnote(estimate ~ "Beta, CI = Confidence Interval", abbreviation = TRUE)
     )
   )
-
 
 tbl_merge(diabetes_change_in_score_model$table_out_lm,
     tab_spanner = c("**Systolic Blood pressure**", "**Diastolic Blood pressure**", "**Blood glucose (mmol/L)**", "**BMI (kg/m2)**",
@@ -659,7 +697,6 @@ for (j in 1:length(diabetes_change_in_score_model$clinical_parameters)){
   )
   
 }
-
 
 ```
 
