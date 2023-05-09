@@ -293,7 +293,11 @@ sero_final_analysis <- sero_final_clean%>%
 save(sero_final_clean, sero_final_analysis, file = "sero_results_data_clean_analysis.RData")
 
 #saving as .csv
-readr::write_csv(sero_final_clean,"sero_results_data_clean.csv", na="")
+readr::write_csv(sero_final_clean%>%
+                   dplyr::select(-c(q7_age_new, age_group_new)),"sero_results_data_clean.csv", na="")
+
+haven::write_dta(sero_final_clean%>%
+                   dplyr::select(-c(q7_age_new, age_group_new)),"sero_results_data_clean.dta")
 
 ```
 
