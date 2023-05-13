@@ -290,7 +290,7 @@ supermarket_store_final_set2 <- supermarket_store_final%>%
     location_island_medium = "Location - Island Medium (These are temporary displays that are often moved or altered. The",
     location_checkout_side = "Location - Checkout side (The area alongside and just in front of the checkout – often look",
     location_checkout_edge = "Location - Checkout edge (The endcap of the checkout which faces the rest of the store.)",
-    advert_yes = "Do we have adverts at location",
+    advert_yes = "Do we have adverts at location - Yes",
     q3p1_1 = "Q3.1: Advertisment Number - 1",
     q3p1_2 = "Q3.1: Advertisment Number - 2",
     q3p1_3 = "Q3.1: Advertisment Number - 3",
@@ -618,7 +618,7 @@ supermarket_store_final_clean <- purrr::reduce(list(supermarket_store_final_set1
 write_csv(supermarket_store_final_clean, "UpdatedretailStoresData_clean_by_store.csv", na="")
 
 #saving as .Rdata
-save(supermarket_store_final, supermarket_store_final_clean, file = "supermarket_store_final.RData")
+save(supermarket_store, supermarket_store_final, supermarket_store_final_clean, file = "supermarket_store_final.RData")
 
 ```  
 
@@ -745,6 +745,8 @@ The quantitative data was cleaned and analysed using R version 4.2.3 (2023).
 Descriptive summary statistics in form of frequency, percentage, mean and standard deviation were generated to examine all selected variables.
 
 Chi-square test and Fisher's exact test where appropriate were used for categorical data to analyze difference in proportion of all selected variables as a function of county and store size.
+
+For continous data, Kruskal-Wallis rank sum test where appropriate was used to examine the comparison of county and store size with continous variables.
 
 The results are presented in narrative and summary tables. Statistical significance was set at p<0.05
 
