@@ -1,0 +1,984 @@
+---
+title: "Supermarket data"
+author: "Reinpeter"
+date: "`r Sys.Date()`"
+output:
+  word_document: 
+    fig_width: 12
+    fig_height: 8
+    number_sections: yes
+  pdf_document:
+    fig_width: 12
+    fig_height: 8
+    number_sections: yes
+  html_document:
+    toc: yes
+    toc_depth: 4
+    number_sections: yes
+---
+
+
+```{r setup, results="hide", include=FALSE}
+
+## Set Chunk requirements
+knitr::opts_chunk$set(#include = TRUE,
+                      echo=FALSE, message = FALSE, warning = FALSE)
+
+options(scipen = 999) #turn off scientific notation for all variables
+
+```
+
+```{r setting working directory, include=FALSE, results = "hide"}
+
+## Setting work directory
+
+setwd(".")
+
+```
+
+
+```{r loading relevant packages, include=FALSE, results = "hide"}
+
+#library we need
+libs_supermarket <- c("googledrive" ,"tidyverse", "haven", "janitor", "knitr",
+                            "lubridate", "plotly", "gtsummary", "flextable", "fastDummies")
+
+#install missing libraries
+
+inatalled_libs_supermarket <- libs_supermarket  %in% rownames(installed.packages())
+if (any(inatalled_libs_supermarket==F)) {
+  install.packages(libs_supermarket[!inatalled_libs_supermarket])
+}
+
+#load libraries
+
+invisible(lapply(libs_supermarket, library, character.only=T))
+
+set_gtsummary_theme(list(
+  "tbl_summary-fn:percent_fun" = function(x) style_percent(x, digits = 1),
+  "tbl_summary-str:categorical_stat" = "{n} ({p}%)"
+))
+# Setting `Compact` theme
+theme_gtsummary_compact()
+
+```
+
+
+```{r googledrive downloading supermarket data, results="hide", include=FALSE}
+
+ drive_auth(#email = "guest360@aphrc.org"
+           )
+  #drive_user()
+
+  supermarket_store_file_id <- drive_find(shared_drive = c(shared_drive_find(pattern = "Data Science Programs")$id),
+           q = c("name contains 'UpdatedretailStoresData.dta'")) #search for a specific set of shared drives, use the query string q
+  
+  supermarket_store_local_download <- drive_download(supermarket_store_file_id$id, overwrite = TRUE)
+  
+```
+
+
+```{r reading supermarket data locally, results="hide", include=FALSE}
+
+  ##Reading the .dta with labelled vector converted to a factor
+  supermarket_store <- read_dta(paste0(supermarket_store_local_download$local_path))%>%
+  mutate_if(is.labelled, as_factor)%>%
+  labelled::set_variable_labels( #labeling unlabeled variables and relabling for final data dictionary
+    Supermarket_Size = "Store Type",
+    Supermarket_Sizea = "Store Type",
+    food_cat4 = "Categorised foods according to NOVA classification",
+    food_cat6 = "Categorised foods according to NOVA classification",
+    Nova_sales = "NOVA classification of foods",
+    Nova_sales1 = "NOVA classification of foods",
+    starttime = "starttime",
+    endtime = "endtime",
+    today = "today",
+    New_StoreLength = "New_StoreLength",
+    New_StoreWidth = "New_StoreWidth",
+    Store_Surfacearea = "Store_Surfacearea",
+    New_StoreLength1 = "New_StoreLength1",
+    New_StoreWidth1 = "New_StoreWidth1",
+    Store_Surfacearea1 = "Store_Surfacearea1",
+    Store_Surfacearea11 = "Store_Surfacearea11",
+    id = "id",
+    oid = "oid",
+    Storelengthaa = "Storelengthaa",
+    Storewidthaa = "Storewidthaa",
+    StoreAreaMSquared1 = "StoreAreaMSquared1",
+    Areacovered_squared1 = "Areacovered_squared1",
+    measure1a = "measure1a",
+    measure1b = "measure1b",
+    measure1c = "measure1c",
+    generalarea = "generalarea",
+    totalSurfacearea = "totalSurfacearea",
+    TotalAreaMSq = "TotalAreaMSq",
+    UltCat = "UltCat",
+    UltCat1 = "UltCat1",
+    Prominence_Level = "Prominence_Level",
+    SESa = "SESa",
+    q5p1a_11 = "q5p2a_11",
+    q5p1a_12 = "q5p2a_12",
+    q5p2a_11 = "q5p2a_11",
+    q4p2b1_296 = "q4p2b1_296",
+    q4p2b1_297 = "q4p2b1_297",
+    q4p2b1_298 = "q4p2b1_298",
+    q4p2b1_299 = "q4p2b1_299",
+    q4p2b1_300 = "q4p2b1_300",
+    InformasCat = "INFORMA Food category: Core and Non-Core", 
+    InformasCat1 = "INFORMA Food category: Core and Non-Core",
+    food_cat5 = "INFORMA Food category: Healthy and Unhealthy",
+    food_cat7a1 = "INFORMA Food category: Healthy and Unhealthy",
+    food_cat = "WHO AFRO Food category",
+    food_cat1 = "WHO AFRO Food category",
+    q4p1 = "Q4.1: Food/ drink brand name (e.g macdonalds , Carrefour,Cadburys) advertised", 
+    q4p2a = "Q4.2: Food/ drink product group advertised",
+    q4p2b1 = "Q4.2: Food/ drink product name advertised",
+    q5p1a_0 = "Promotional characters - No character present",
+    q5p1a_1 = "Promotional characters - Cartoon or company owned character e.g M&Ms",
+    q5p1a_2 = "Promotional characters - Licenced character e.g mickey mouse, dora the explorer",
+    q5p1a_3 = "Promotional characters - Amateur sports person (  a person playing sports)",
+    q5p1a_4 = "Promotional characters - Famous sports person e.g Dennis Oliech",
+    q5p1a_5 = "Promotional characters - Sport event",
+    q5p1a_6 = "Promotional characters - Celebrity(non sports)",
+    q5p1a_7 = "Promotional characters - Movie tie - in e.g shrek",
+    q5p1a_8 = "Promotional characters - Historical events (non -sport) e.g Xmas, Ramadhan",
+    q5p1a_9 = "Promotional characters - For kids/ youth/adoelscent e.g image of child, great for school lunch etc",
+    q5p1a_10 = "Promotional characters - Awards e.g award winning , number 1, best selling",
+    q5p1a_96 = "Promotional characters - Others (speicfy)",
+    q5p2a_1 = "Premium offers - No premium offers",
+    q5p2a_2 = "Premium offers - Game and app downloads",
+    q5p2a_3 = "Premium offers - Contests",
+    q5p2a_4 = "Premium offers - Buy one get one free or other",
+    q5p2a_5 = "Premium offers - 20% extra or other",
+    q5p2a_6 = "Premium offers - Limited edition  ( e.g last stock)",
+    q5p2a_7 = "Premium offers - Social charity",
+    q5p2a_8 = "Premium offers - Gift or collectable",
+    q5p2a_9 = "Premium offers - price discount",
+    q5p2a_10 = "Premium offers - Loyalty programs",
+    q5p2a_96 = "Premium offers - Others specify",
+    q7p2a = "Q7.2: Food/ drink product name (group) sold in the outlet",
+    q7p2b = "Q7.2: Other name specify sold in the outlet",
+    q7p3 = "Q7.3: Food / drink product name sold in the outlet",
+    q7p5 = "Q7.5: Types of foods sold in the outlet: Cooked, Uncooked or both",
+    q7p6 = "Q7.6: Food product description and Brand Name sold in the outlet: Cooked, Uncooked or both",
+    shelves = "Shelve number where the food category is placed",
+    level = "level of placed products in entry/exit in relation to height and direction of floor to ceiling",
+    level_1 = "Level 1: 0 - 100 cm level of placed products in entry/exit in relation to height and direction of floor to ceiling",
+    level_2 = "Level 2: 100 - 150 cm level of placed products in entry/exit in relation to height and direction of floor to ceiling",
+    level_3 = "Level 3: 150 - 190 cm level of placed products in entry/exit in relation to height and direction of floor to ceiling"
+  )
+
+  supermarket_store1 <- read_dta(paste0(supermarket_store_local_download$name))
+
+  supermarket_store_variable_attr <- as.data.frame(labelled::generate_dictionary(supermarket_store))
+
+  supermarket_store_variable_attr1 <- as.data.frame(labelled::look_for(supermarket_store1, labels = TRUE, values = TRUE))
+
+```  
+
+
+```{r assigning variable labels}
+
+#Creating a named vector to quickly assign the variable labels
+
+supermarket_store_labels <- supermarket_store_variable_attr%>%
+  select(variable, label)%>%
+  deframe()
+
+```
+
+
+```{r final data, results="hide", include=FALSE}
+
+  supermarket_store_final <- supermarket_store%>%
+  mutate(across(c(q5p1a, q5p2a), ~as.numeric(.x)),
+         q5p2a = if_else(q5p2a_1 == 1, 0, q5p2a))%>%
+  mutate(shelves = ifelse(shelves < 6, "shelf1_5",
+                   ifelse(shelves < 11, "shelf6_10",
+                   ifelse(shelves < 16, "shelf11_15", "shelf_15ormore"))),
+         shelves = factor(shelves, levels = c("shelf1_5", "shelf6_10", "shelf11_15", "shelf_15ormore")),
+         q4p1 = ifelse(q4p1 == "Brookside, Tuzo,molo milk and mountain fresh", "Brookside Tuzo Molo Mountain fresh",
+                ifelse(q4p1 == "KCC gold crown milk, Daima milk,Lato milk", "KCC Daima Lato",
+                ifelse(q4p1 == "Lato milk,victory farm yoghurt,daima milk", "Lato Victory farm Daima",
+                ifelse(q4p1 == "Fanta soda 300ml,  cocacola soda 1.25 and 2 litres and 1 litre minute maid juice", "Coca cola minute maid",
+                ifelse(q4p1 == "Molo milk fresh milk", "Molo fresh milk",
+                ifelse(q4p1 == "Ribena, Lucozade", "Ribena Lucozade",
+                ifelse(q4p1 == "Raha drinking chocolate  Asis premium tea", "Raha Asis",
+                ifelse(str_detect(q4p1, "Salit"), "Salit",
+                ifelse(str_detect(q4p1, "Zits"), "Zits",
+                ifelse(str_detect(q4p1, "Zesta"), "Zesta", 
+                ifelse(str_detect(q4p1, "Yego"), "Yego", 
+                ifelse(str_detect(q4p1, "Tuzo"), "Tuzo", 
+                ifelse(str_detect(q4p1, "Supa loaf") | str_detect(q4p1, "Super loaf"), "Supa loaf", 
+                ifelse(str_detect(q4p1, "Royal bakers"), "Royal bakers",
+                ifelse(str_detect(q4p1, "Oreo"), "Oreo", 
+                ifelse(str_detect(q4p1, "Nuvita"), "Nuvita", 
+                ifelse(str_detect(q4p1, "Mumias sugar"), "Mumias", 
+                ifelse(str_detect(q4p1, "Molo milk"), "Molo", 
+                ifelse(str_detect(q4p1, "Mac coffee") | str_detect(q4p1, "Maccoffee"), "Mac coffee", 
+                ifelse(str_detect(q4p1, "Lyons maid"), "Lyons maid", 
+                ifelse(str_detect(q4p1, "Lucozade") | str_detect(q4p1, "Lucuzade"), "Lucozade", 
+                ifelse(str_detect(q4p1, "Lato milk"), "Lato", 
+                ifelse(str_detect(q4p1, "Knorr"), "Knorr",
+                ifelse(str_detect(q4p1, "Kinder joy") | str_detect(q4p1, "Kinderjoy"), "Kinder joy",
+                ifelse(str_detect(q4p1, "Kifaru maize flour"), "Kifaru", 
+                ifelse(str_detect(q4p1, "Kcc fresh milk"), "KCC", 
+                ifelse(str_detect(q4p1, "Juicy fresh sweets"), "Juicy fresh", 
+                ifelse(str_detect(q4p1, "Honest"), "Honest",
+                ifelse(str_detect(q4p1, "Fresh fry") | str_detect(q4p1, "Fresh Fri") | str_detect(q4p1, "Fresh fri"), "Fresh Fri", 
+                ifelse(str_detect(q4p1, "Farmers choice") | str_detect(q4p1, "Farmer's choice") , "Farmers choice", 
+                ifelse(str_detect(q4p1, "Fanta") | str_detect(q4p1, "Coca"), "Coca Cola", 
+                ifelse(str_detect(q4p1, "Dairyland"), "Dairyland", 
+                ifelse(str_detect(q4p1, "Dairymilk") | str_detect(q4p1, "Cadbury"), "Cadbury",
+                ifelse(str_detect(q4p1, "Daima"), "Daima",
+                ifelse(str_detect(q4p1, "Brookside"), "Brookside",
+                ifelse(str_detect(q4p1, "Ajab"), "Ajab", q4p1)))))))))))))))))))))))))))))))))))))%>%
+  labelled::set_variable_labels(!!!supermarket_store_labels[names(supermarket_store_labels) %in% names(.)]) #labeling variables from data dictionary
+   
+```
+
+
+```{r final subset data, results="hide", include=FALSE}
+# unique columns of data 
+supermarket_store_final_set1 <- supermarket_store_final%>%
+  dplyr::select(county:id)%>%
+  distinct(key, .keep_all = TRUE)
+
+# Dummy code location, adverts at location, advertisement number, size of advertisement, Type of advertisement, Number of products in advertisement,
+# Content of advert ( pictorial , text, combined), promotional characters and premium offers, Types of foods sold in the outlet, 
+# Food/Drink items sold in outlet, Types of foods sold in the outlet cooked, uncooked or both, shelves number where food products are placed,
+# level of placed products in entry/exit in relation to height and direction of floor
+supermarket_store_final_set2 <- supermarket_store_final%>%
+  dplyr::select(key,location:setofrp_7, advert, q3p1, q3p5a, q3p7, q3p7a, q3p8, q3p9, q3p10, q5p1a:q5p2b,
+                setofrp2:q7p3, q7p3_1:q7p3_300, q7p3b, q7p5, q7p6, shelves:depth)%>%
+  dplyr::select(-c(setofrp_7, q3p7a, q3p9, q5p1b, q5p2b, setofrp2, parent_key, oid, q7p2b,q7p3, q7p3b,
+                   q7p6, level,length, width, depth))%>% #Keeping track of unused variables
+  mutate(location = fct_recode(location,
+                          "Entrance" = "Entrance (Area within 3m in front of the store entrance (or security barrier))",
+                          "Endcap A" = "Endcap A (Endcaps (also known as the end of aisles) that face the front of the s",
+                          "Endcap B" = "Endcap B (Endcap B refers to the endcaps that face the back of the store. If a s",
+                          "Aisle Medium" = "Aisle Medium (All permanent aisle structures within the store. These include any",
+                          "Edge" = "Edge (This location includes anything along the perimeter of the store. This inc",
+                          "Island Medium" = "Island Medium (These are temporary displays that are often moved or altered. The",
+                          "Checkout side" = "Checkout side (The area alongside and just in front of the checkout – often look",
+                          "Checkout edge" = "Checkout edge (The endcap of the checkout which faces the rest of the store.)" ),
+           #q7p2a = str_to_lower(q7p2a),
+           #q7p2a = gsub("(", "", q7p2a, fixed = TRUE), # "Fixed = TRUE" disables regex
+           #q7p2a = gsub(")", "", q7p2a, fixed = TRUE), # "Fixed = TRUE" disables regex
+         )%>%
+  fastDummies::dummy_cols(select_columns = c("location", "advert", "q3p1", "q3p5a", "q3p7", "q3p8", "q3p10", "q7p2a", "q7p5", "shelves"),
+             ignore_na = TRUE, #ignores any NA values in the column
+             remove_selected_columns = TRUE #removes the columns used to generate the dummy columns.
+             )%>%
+  janitor::clean_names()%>%
+  dplyr::select(-c(advert_no))%>%
+  group_by(key,locationexists, food)%>%
+  summarise(across(c(location_entrance:q3p10_combined, q5p1a:q5p2a_96, q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300,
+                     q7p5_cooked:q7p5_both, shelves_shelf1_5:shelves_shelf_15ormore, level_1:level_3
+                     ), ~ sum(.x, na.rm = TRUE)), .groups = "drop")%>%
+  mutate(across(c(location_entrance:q3p10_combined, q5p1a:q5p2a_96, q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300,
+                  q7p5_cooked:q7p5_both, shelves_shelf1_5:shelves_shelf_15ormore, level_1:level_3), ~ifelse(.x == 0, "No",
+                                 ifelse(.x > 0 , "Yes", .x))),
+         across(c(location_entrance:q3p10_combined, q5p1a:q5p2a_96, q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300,
+                  q7p5_cooked:q7p5_both, shelves_shelf1_5:shelves_shelf_15ormore, level_1:level_3), ~factor(.x, levels = c("Yes", "No"))))%>%
+  labelled::set_variable_labels( #labeling new variables
+    location_entrance = "Location - Entrance (Area within 3m in front of the store entrance (or security barrier))",
+    location_endcap_a = "Location - Endcap A (Endcaps (also known as the end of aisles) that face the front of the s",
+    location_endcap_b = "Location - Endcap B (Endcap B refers to the endcaps that face the back of the store. If a s",
+    location_aisle_medium = "Location - Aisle Medium (All permanent aisle structures within the store. These include any",
+    location_edge = "Location - Edge (This location includes anything along the perimeter of the store. This inc",
+    location_island_medium = "Location - Island Medium (These are temporary displays that are often moved or altered. The",
+    location_checkout_side = "Location - Checkout side (The area alongside and just in front of the checkout – often look",
+    location_checkout_edge = "Location - Checkout edge (The endcap of the checkout which faces the rest of the store.)",
+    advert_yes = "Do we have adverts at location",
+    q3p1_1 = "Q3.1: Advertisment Number - 1",
+    q3p1_2 = "Q3.1: Advertisment Number - 2",
+    q3p1_3 = "Q3.1: Advertisment Number - 3",
+    q3p1_4 = "Q3.1: Advertisment Number - 4",
+    q3p1_5 = "Q3.1: Advertisment Number - 5",
+    q3p1_6 = "Q3.1: Advertisment Number - 6",
+    q3p1_7 = "Q3.1: Advertisment Number - 7",
+    q3p1_8 = "Q3.1: Advertisment Number - 8",
+    q3p1_9 = "Q3.1: Advertisment Number - 9",
+    q3p1_10 = "Q3.1: Advertisment Number - 10",
+    q3p1_11 = "Q3.1: Advertisment Number - 11",
+    q3p1_13 = "Q3.1: Advertisment Number - 13",
+    q3p5a_small_a4_but_1_3m_x_1_9m = "Q3.5: Size of the advertisement - Small ( > A4 but <1.3m X 1.9m)",
+    q3p5a_medium_1_3m_x_1_9m_but_2_0m_x_2_5m = "Q3.5: Size of the advertisement - Medium (<1.3m X 1.9m but < 2.0m X 2.5m)",
+    q3p5a_large_2m_x_2_5m = "Q3.5: Size of the advertisement - Large (2m X 2.5m)",
+    q3p7_billboard = "Q3.7: Type of advertisement - Billboard",
+    q3p7_poster_or_banner = "Q3.7: Type of advertisement - Poster or banner",
+    q3p7_free_standing_sign_e_g_a_frame_board = "Q3.7: Type of advertisement - Free standing sign (e.g A frame board, Painted building / wall",
+    q3p7_painted_building_wall = "Q3.7: Type of advertisement - Painted building / wall",
+    q3p7_digital_signs_led = "Q3.7: Type of advertisement - Digital signs / LED",
+    q3p7_store_mechadising = "Q3.7: Type of advertisement - Store mechadising",
+    q3p7_others_specify = "Q3.7: Type of advertisement - Others (Specify)",
+    q3p8_none_only_company_brand_mentioned = "Q3.8: Number of products in the advertisment - None (only company/brand mentioned)",
+    q3p8_single_product_type = "Q3.8: Number of products in the advertisment - Single product type",
+    q3p8_two_food_product_type = "Q3.8: Number of products in the advertisment - Two food product type",
+    q3p8_three_food_product_types = "Q3.8: Number of products in the advertisment - Three food product types",
+    q3p8_more_than_3_food_product_types = "Q3.8: Number of products in the advertisment - More than 3 food product types",
+    q3p10_logos_pictorial = "Q3.10: Content of advert - Logos /Pictorial",
+    q3p10_text = "Q3.10: Content of advert - Text",
+    q3p10_combined = "Q3.10: Content of advert - Combined Pictorial and Text",
+    q7p2a_whole_grain_cereals = "Types of Food/drink sold in the outlet - Whole grain cereals",
+    q7p2a_refined_cereals = "Types of Food/drink sold in the outlet - Refined cereals",
+    q7p2a_fermented_grain_products = "Types of Food/drink sold in the outlet - Fermented grain products",
+    q7p2a_milk_and_milk_products = "Types of Food/drink sold in the outlet - Milk and milk products",
+    q7p2a_fresh_juices = "Types of Food/drink sold in the outlet - Fresh juices",
+    q7p2a_vitamin_a_rich_fruits = "Types of Food/drink sold in the outlet - Vitamin A rich fruits",
+    q7p2a_other_fruits = "Types of Food/drink sold in the outlet - Other fruits",
+    q7p2a_nuts_and_seeds = "Types of Food/drink sold in the outlet - Nuts and seeds",
+    q7p2a_roots_tubers_plantain_and_potatoes = "Types of Food/drink sold in the outlet - Roots, tubers, plantain and potatoes",
+    q7p2a_vitamin_a_rich_vegetables = "Types of Food/drink sold in the outlet - Vitamin A rich vegetables",
+    q7p2a_green_leafy_vegetables = "Types of Food/drink sold in the outlet - Green leafy vegetables",
+    q7p2a_other_vegetables = "Types of Food/drink sold in the outlet - Other vegetables",
+    q7p2a_pulses_beans_peas_lentils = "Types of Food/drink sold in the outlet - Pulses (beans, peas, lentils)",
+    q7p2a_soups = "Types of Food/drink sold in the outlet - Soups",
+    q7p2a_egg = "Types of Food/drink sold in the outlet - Egg",
+    q7p2a_red_meat = "Types of Food/drink sold in the outlet - Red meat",
+    q7p2a_organ_meat = "Types of Food/drink sold in the outlet - Organ meat",
+    q7p2a_poultry = "Types of Food/drink sold in the outlet - Poultry",
+    q7p2a_fish = "Types of Food/drink sold in the outlet - Fish",
+    q7p2a_mixed_dishes_vegetarian_meaty = "Types of Food/drink sold in the outlet - Mixed dishes (vegetarian, meaty)",
+    q7p2a_savoury_pies = "Types of Food/drink sold in the outlet - Savoury pies",
+    q7p2a_processed_meat = "Types of Food/drink sold in the outlet - Processed meat",
+    q7p2a_sugar_and_sweet_spreads = "Types of Food/drink sold in the outlet - Sugar and sweet spreads",
+    q7p2a_cakes_and_sweets = "Types of Food/drink sold in the outlet - Cakes and sweets",
+    q7p2a_oils = "Types of Food/drink sold in the outlet - Oils",
+    q7p2a_snacks_savoury_or_sweet = "Types of Food/drink sold in the outlet - Snacks (savoury or sweet)",
+    q7p2a_spreading_fats = "Types of Food/drink sold in the outlet - Spreading fats",
+    q7p2a_fats = "Types of Food/drink sold in the outlet - Fats",
+    q7p2a_sodas_and_sweetened_beverages = "Types of Food/drink sold in the outlet - Sodas and sweetened beverages",
+    q7p2a_tea_and_coffee = "Types of Food/drink sold in the outlet - Tea and coffee",
+    q7p2a_alcoholic_beverages = "Types of Food/drink sold in the outlet - Alcoholic beverages",
+    q7p2a_condiments_and_flavour_cubes = "Types of Food/drink sold in the outlet - Condiments and flavour cubes",
+    q7p2a_water = "Types of Food/drink sold in the outlet - Water",
+    q7p2a_infant_formula = "Types of Food/drink sold in the outlet - Infant formula",
+    q7p5_cooked = "Q7.5: Types of foods sold/advertised in the outlet - Cooked",
+    q7p5_un_cooked = "Q7.5: Types of foods sold/advertised in the outlet - Uncooked",
+    q7p5_both = "Q7.5: Types of foods sold/advertised in the outlet - Both Uncooked and Cooked",
+    shelves_shelf1_5 = "Shelve number where the food category is placed: Shelf 1-5",
+    shelves_shelf6_10 = "Shelve number where the food category is placed: Shelf 6-10",
+    shelves_shelf11_15 = "Shelve number where the food category is placed: Shelf 11-15",
+    shelves_shelf_15ormore = "Shelve number where the food category is placed: Shelf 15 or more"
+  )%>%
+  labelled::set_variable_labels(!!!supermarket_store_labels[names(supermarket_store_labels) %in% names(.)]) #labeling variables from data dictionary
+
+
+
+# data to wide format - Food/Drink Brands advertised in outlet
+supermarket_store_final_set3 <- supermarket_store_final%>%
+  dplyr::select(key, q4p1)%>%
+  mutate(q4p1 = na_if(q4p1, ""))%>%
+  pivot_wider(names_from = q4p1, values_from = q4p1, values_fn = ~1, values_fill = 0, 
+              names_expand = TRUE, #Forces implicit(unused) factor levels to explicit. be represented in result
+              names_prefix = "q4p1_")%>%
+  janitor::clean_names()%>%
+  dplyr::select(-q4p1_na)%>%
+  mutate(q4p1_brookside = q4p1_brookside + q4p1_brookside_tuzo_molo_mountain_fresh,
+         q4p1_tuzo = q4p1_tuzo + q4p1_brookside_tuzo_molo_mountain_fresh,
+         q4p1_molo = q4p1_molo + q4p1_brookside_tuzo_molo_mountain_fresh + q4p1_molo_fresh_milk,
+         q4p1_fresh_milk = q4p1_fresh_milk + q4p1_molo_fresh_milk,
+         q4p1_mountain_fresh = q4p1_brookside_tuzo_molo_mountain_fresh,
+         q4p1_coca_cola = q4p1_coca_cola + q4p1_coca_cola_minute_maid,
+         q4p1_minute_maid = q4p1_coca_cola_minute_maid,
+         q4p1_daima = q4p1_daima + q4p1_kcc_daima_lato + q4p1_lato_victory_farm_daima,
+         q4p1_kcc = q4p1_kcc + q4p1_kcc_daima_lato,
+         q4p1_lato = q4p1_lato + q4p1_kcc_daima_lato + q4p1_lato_victory_farm_daima,
+         q4p1_victory_farm = q4p1_victory_farm + q4p1_lato_victory_farm_daima,
+         q4p1_lucozade = q4p1_lucozade + q4p1_ribena_lucozade,
+         q4p1_ribena = q4p1_ribena + q4p1_ribena_lucozade,
+         q4p1_raha = q4p1_raha_asis,
+         q4p1_asis = q4p1_raha_asis,
+         )%>%
+  dplyr::select(-q4p1_brookside_tuzo_molo_mountain_fresh, -q4p1_molo_fresh_milk,-q4p1_coca_cola_minute_maid,
+                -q4p1_kcc_daima_lato, -q4p1_lato_victory_farm_daima, -q4p1_ribena_lucozade, -q4p1_raha_asis)%>% #deleting unwanted columns
+  mutate(across(c(!key), ~ifelse(.x == 0, "No",
+                                 ifelse(.x > 0 , "Yes", .x))),
+         across(c(!key), ~factor(.x, levels = c("Yes", "No"))))%>%
+  labelled::set_variable_labels( #labeling new variables
+    q4p1_4us = "Food/drink brand name advertised - 4us",
+    q4p1_ajab = "Food/drink brand name advertised - Ajab",
+    q4p1_ben_and_jerrys = "Food/drink brand name advertised - Ben and Jerry's",
+    q4p1_bio = "Food/drink brand name advertised - Bio",
+    q4p1_blueband = "Food/drink brand name advertised - Blueband",
+    q4p1_brookside = "Food/drink brand name advertised - Brookside",
+    q4p1_cadbury = "Food/drink brand name advertised - Cadbury",
+    q4p1_cheeky_treetz = "Food/drink brand name advertised - Cheeky treetz",
+    q4p1_club = "Food/drink brand name advertised - Club",
+    q4p1_coca_cola = "Food/drink brand name advertised - Coca cola",
+    q4p1_creambell = "Food/drink brand name advertised - Creambell",
+    q4p1_daima = "Food/drink brand name advertised - Daima",
+    q4p1_dairyland = "Food/drink brand name advertised - Dairyland",
+    q4p1_dasani = "Food/drink brand name advertised - Dasani",
+    q4p1_dawaat = "Food/drink brand name advertised - Dawaat",
+    q4p1_delamere = "Food/drink brand name advertised - Delamere",
+    q4p1_dido = "Food/drink brand name advertised - Dido",
+    q4p1_dormans = "Food/drink brand name advertised - Dormans",
+    q4p1_farmers_choice = "Food/drink brand name advertised - Farmer's choice",
+    q4p1_fresh_fri = "Food/drink brand name advertised - Fresh Fri",
+    q4p1_fresh_milk = "Food/drink brand name advertised - Fresh milk",
+    q4p1_honest = "Food/drink brand name advertised - Honest",
+    q4p1_i_j = "Food/drink brand name advertised - I&J",
+    q4p1_ilara = "Food/drink brand name advertised - Ilara",
+    q4p1_indomie = "Food/drink brand name advertised - Indomie",
+    q4p1_juicy_fresh = "Food/drink brand name advertised - Juicy fresh",
+    q4p1_juicy_fruit = "Food/drink brand name advertised - Juicy fruit",
+    q4p1_kabras = "Food/drink brand name advertised - Kabras",
+    q4p1_kcc = "Food/drink brand name advertised - KCC",
+    q4p1_kenoodles = "Food/drink brand name advertised - Kenoodles",
+    q4p1_kifaru = "Food/drink brand name advertised - Kifaru",
+    q4p1_kinder_joy = "Food/drink brand name advertised - Kinder joy",
+    q4p1_knorr = "Food/drink brand name advertised - Knorr",
+    q4p1_lato = "Food/drink brand name advertised - Lato",
+    q4p1_lollipop = "Food/drink brand name advertised - Lollipop",
+    q4p1_lucozade = "Food/drink brand name advertised - Lucozade",
+    q4p1_lyons_maid = "Food/drink brand name advertised - Lyons maid",
+    q4p1_mac_coffee = "Food/drink brand name advertised - Mac coffee",
+    q4p1_mc_vities = "Food/drink brand name advertised - McVitie's",
+    q4p1_molo = "Food/drink brand name advertised - Molo",
+    q4p1_mumias = "Food/drink brand name advertised - Mumias",
+    q4p1_norda = "Food/drink brand name advertised - Norda",
+    q4p1_nut_gold = "Food/drink brand name advertised - Nut gold",
+    q4p1_nuvita = "Food/drink brand name advertised - Nuvita",
+    q4p1_orbit = "Food/drink brand name advertised - Orbit",
+    q4p1_oreo = "Food/drink brand name advertised - Oreo",
+    q4p1_p_k = "Food/drink brand name advertised - P.K",
+    q4p1_pearl = "Food/drink brand name advertised - Pearl",
+    q4p1_pepsi = "Food/drink brand name advertised - Pepsi",
+    q4p1_peptang = "Food/drink brand name advertised - Peptang",
+    q4p1_postman = "Food/drink brand name advertised - Postman",
+    q4p1_ribena = "Food/drink brand name advertised - Ribena",
+    q4p1_royal_bakers = "Food/drink brand name advertised - Royal bakers",
+    q4p1_salit = "Food/drink brand name advertised - Salit",
+    q4p1_savannah = "Food/drink brand name advertised - Savannah",
+    q4p1_skittles = "Food/drink brand name advertised - Skittles",
+    q4p1_snickers = "Food/drink brand name advertised - Snickers",
+    q4p1_supa_loaf = "Food/drink brand name advertised - Supa loaf",
+    q4p1_tic_tac = "Food/drink brand name advertised - Tic Tac",
+    q4p1_tropical_heat = "Food/drink brand name advertised - Tropical heat",
+    q4p1_tuzo = "Food/drink brand name advertised - Tuzo",
+    q4p1_urban_bites = "Food/drink brand name advertised - Urban bites",
+    q4p1_victory_farm = "Food/drink brand name advertised - Victory Farm",
+    q4p1_wrigleys_double_mint = "Food/drink brand name advertised - Wrigleys, double mint",
+    q4p1_yego = "Food/drink brand name advertised - Yego",
+    q4p1_you_c1000 = "Food/drink brand name advertised - You.C1000",
+    q4p1_zesta = "Food/drink brand name advertised - Zesta",
+    q4p1_zits = "Food/drink brand name advertised - Zits",
+    q4p1_mountain_fresh = "Food/drink brand name advertised - Mountain fresh",
+    q4p1_minute_maid = "Food/drink brand name advertised - Minute maid",
+    q4p1_raha = "Food/drink brand name advertised - Raha",
+    q4p1_asis = "Food/drink brand name advertised - Asis"
+  )
+
+
+# Dummy code Food/Drink items advertised in outlet, WHO AFRO Food category, INFORMA Food category: Healthy and Unhealthy, 
+# INFORMA food category: Core and Non-Core, Nova classification of foods, Store characteristics
+supermarket_store_final_set4 <- supermarket_store_final%>%
+  dplyr::select(key, q4p2a, q4p2b1, q4p2b1_1:q4p2b1_300, q4p2b2, q4p2c, food_cat, food_cat1, food_cat5, food_cat7a1,
+                InformasCat, InformasCat1, food_cat4, Nova_sales, Nova_sales1, food_cat6, UltCat, UltCat1,
+                Supermarket_Sizea, SESa, Prominence_Level, Storelengthaa, Storewidthaa, StoreAreaMSquared1, measure1a, measure1b, measure1c,
+                generalarea, totalSurfacearea, TotalAreaMSq)%>%
+  dplyr::select(-c(q4p2a, q4p2b1, q4p2b2, q4p2c, food_cat1, food_cat7a1, InformasCat1, 
+                   food_cat4, Nova_sales1, food_cat6, UltCat1))%>% #Keeping track of unused variables
+  fastDummies::dummy_cols(select_columns = c("food_cat", "food_cat5", "InformasCat", "Nova_sales", "UltCat", "Prominence_Level"),
+             ignore_na = TRUE, #ignores any NA values in the column
+             remove_selected_columns = TRUE #removes the columns used to generate the dummy columns.
+             )%>%
+  janitor::clean_names()%>%
+  rename(Supermarket_Sizea= supermarket_sizea, SESa= se_sa, Storelengthaa = storelengthaa, Storewidthaa= storewidthaa,
+         StoreAreaMSquared1 = store_area_m_squared1, totalSurfacearea= total_surfacearea, TotalAreaMSq= total_area_m_sq)%>%
+  group_by(key, Supermarket_Sizea, SESa)%>%
+  summarise(across(c(q4p2b1_1:q4p2b1_300, 
+            food_cat_chocolate_and_sugar_confectionery_energy_bars_sweet_topping_and_desserts:food_cat_sauces_dips_other_seasonings_and_dressings,
+            food_cat5_healthy:food_cat5_unhealthy, 
+            informas_cat_breads_rice_and_rice_products_without_added_fat_sugar_or_salt_noodles:informas_cat_baby_and_toddler_milk_formulae,
+            nova_sales_processed_culinary_ingredient:nova_sales_ultraprocessed_foods, ult_cat_not_ultra_processed_foods:ult_cat_ultraprocessed_foods,
+            prominence_level_low_prominence:prominence_level_high_prominence ), ~ sum(.x, na.rm = TRUE)),
+            across(c(Storelengthaa:TotalAreaMSq), ~ mean(.x, na.rm = TRUE)), .groups = "drop")%>%
+  mutate(across(c(q4p2b1_1:q4p2b1_300,
+            food_cat_chocolate_and_sugar_confectionery_energy_bars_sweet_topping_and_desserts:food_cat_sauces_dips_other_seasonings_and_dressings,
+            food_cat5_healthy:food_cat5_unhealthy,
+            informas_cat_breads_rice_and_rice_products_without_added_fat_sugar_or_salt_noodles:informas_cat_baby_and_toddler_milk_formulae,
+            nova_sales_processed_culinary_ingredient:nova_sales_ultraprocessed_foods, ult_cat_not_ultra_processed_foods:ult_cat_ultraprocessed_foods,
+            prominence_level_low_prominence:prominence_level_high_prominence ), ~ifelse(.x == 0, "No",
+                                 ifelse(.x > 0 , "Yes", .x))),
+         across(c(q4p2b1_1:q4p2b1_300,
+        food_cat_chocolate_and_sugar_confectionery_energy_bars_sweet_topping_and_desserts:food_cat_sauces_dips_other_seasonings_and_dressings,
+        food_cat5_healthy:food_cat5_unhealthy,
+        informas_cat_breads_rice_and_rice_products_without_added_fat_sugar_or_salt_noodles:informas_cat_baby_and_toddler_milk_formulae,
+        nova_sales_processed_culinary_ingredient:nova_sales_ultraprocessed_foods, ult_cat_not_ultra_processed_foods:ult_cat_ultraprocessed_foods,
+            prominence_level_low_prominence:prominence_level_high_prominence ), ~factor(.x, levels = c("Yes", "No"))))%>%
+  labelled::set_variable_labels(!!!supermarket_store_labels[names(supermarket_store_labels) %in% names(.)])%>% #labeling variables from data dictionary
+  labelled::set_variable_labels( #labeling new variables
+    food_cat_chocolate_and_sugar_confectionery_energy_bars_sweet_topping_and_desserts = "Chocolate and sugar confectionery, energy bars, sweet topping and desserts",
+    food_cat_cakes_sweet_biscuits_and_pastries_other_sweet_bakery_products_dry_mixes_for_making_suchm = "Cakes, sweet biscuits and pastries, other sweet bakery products, dry mixes for making suchm",
+    food_cat_bread_bread_products_and_crisp_bread = "Bread, bread products and crisp bread",
+    food_cat_breakfast_cereals = "Breakfast cereals",
+    food_cat_a_ready_to_use_ready_to_eat_savoury_snacks_potato_cereal_or_starch_based_from_roots_tuber_or_legumes = "a) READY TO USE-ready to eat savoury snacks Potato, cereal or starch-based (from roots, tuber, or legumes)",
+    food_cat_b_ready_to_use_processed_nuts_and_edible_seeds = "b) READY TO USE-Processed nuts and edible seeds",
+    food_cat_c_ready_to_use_fish_based = "c) READY TO USE-Fish-based",
+    food_cat_a_bevarages_juices = "a) BEVARAGES-Juices",
+    food_cat_b_bevarages_milk_and_dairy_based_drinks = "b) BEVARAGES-Milk and dairy based drinks",
+    food_cat_c_bevarages_water_based_flavoured_and_unflavoured_drink = "c) BEVARAGES-Water- based flavoured and unflavoured drink",
+    food_cat_d_bevarages_coffee_coffee_substitutes_tea_herbal_infusions = "d) BEVARAGES-Coffee, coffee substitutes, tea, herbal infusions",
+    food_cat_e_bevarages_cereal_legumes_grain_tree_nut_based_beverages = "e) BEVARAGES-Cereal, legumes, grain, tree nut-based beverages",
+    food_cat_frozen_dairy_based_desserts_and_edible_ices = "Frozen dairy-based desserts and edible ices",
+    food_cat_other_dairy_based_desserts = "Other dairy based desserts",
+    food_cat_cheese_and_analogues = "Cheese and analogues",
+    food_cat_composite_foods_prepared_foods_ready_made_and_convenience_foods_and_composite_dishes = "Composite foods (Prepared foods, ready-made and convenience foods and composite dishes)",
+    food_cat_butter_and_other_fats_and_oils_and_fat_emulsions = "Butter and other fats and oils, and fat emulsions",
+    food_cat_pasta_and_noodles_and_like_products_rice_and_grains = "Pasta and noodles and like products, rice and grains",
+    food_cat_fresh_and_frozen_meat_poultry_game_fish_and_seafood_a_processed_meat_poultry_and_game_products = "Fresh and frozen meat, poultry, game, fish and seafood--a) Processed meat, poultry and game products",
+    food_cat_fresh_and_frozen_meat_poultry_game_fish_and_seafood_b_processed_fish_and_seafood_products = "Fresh and frozen meat, poultry, game, fish and seafood--b) Processed fish and seafood products",
+    food_cat_fresh_and_frozen_fruits_and_vegetables_legumes_roots_and_tubersu = "Fresh and frozen fruits and vegetables, legumes, roots and tubersu",
+    food_cat_processed_fruits_vegetables_and_legumes = "Processed fruits, vegetables, and legumes",
+    food_cat_solid_form_soybean_products = "Solid-form soybean products",
+    food_cat_sauces_dips_other_seasonings_and_dressings = "Sauces, dips, other seasonings and dressings",
+    food_cat5_healthy = "INFORMA Food category: Healthy",
+    food_cat5_unhealthy = "INFORMA Food category: Unhealthy",
+    informas_cat_breads_rice_and_rice_products_without_added_fat_sugar_or_salt_noodles = "Breads, rice and rice products without added fat, sugar or salt, noodles",
+    informas_cat_low_sugar_and_high_fibre_breakfast_cereals_20g_sugar_100g_and_5g_dietary_fibre_100g = "Low sugar and high fibre breakfast cereals (<20g sugar /100g and >5g dietary fibre /100g)",
+    informas_cat_fruits_and_fruit_products_without_added_fats_sugars_or_salt = "Fruits and fruit products without added fats, sugars or salt",
+    informas_cat_vegetables_and_vegetable_products_without_added_fats_sugars_or_salt = "Vegetables and vegetable products without added fats, sugars or salt",
+    informas_cat_milks_and_yoghurts_3g_fat_100g_cheese_15g_fat_100g_and_their_alternatives = "Milks and yoghurts (≤3g fat /100g), cheese (≤15g fat /100g) and their alternatives",
+    informas_cat_meat_and_meat_alternatives_include_meat_poultry_fish_legumes_tofu_eggs_and_raw_unsalted_nuts = "Meat and meat alternatives - include meat, poultry, fish, legumes, tofu, eggs and raw unsalted nuts",
+    informas_cat_oils_high_in_mono_or_polyunsaturated_fats_and_low_fat_savoury_sauces_10g_fat_100g = "Oils high in mono- or polyunsaturated fats, and low fat savoury sauces (<10g fat /100g)",
+    informas_cat_low_fat_salt_meals_include_frozen_or_packaged_meals_6g_saturated_fat_serve_900mg_sodium_serve = "Low fat/salt meals - include frozen or packaged meals (≤6g saturated fat /serve, ≤900mg sodium /serve)",
+    informas_cat_healthy_snacks_must_be_based_on_core_foods = "Healthy Snacks – must be based on core foods",
+    informas_cat_baby_foods_exclude_milk_formulae = "Baby foods (exclude milk formulae)",
+    informas_cat_bottled_water_include_unflavoured_mineral_and_soda_waters = "Bottled water (include unflavoured mineral and soda waters)",
+    informas_cat_high_sugar_and_or_low_fibre_breakfast_cereals_20g_sugars_100g_or_5g_dietary_fibre_100g = "High sugar and/or low fibre breakfast cereals (>20g sugars /100g or <5g dietary fibre /100g)",
+    informas_cat_flavoured_fried_instant_rice_and_noodle_products = "Flavoured/fried instant rice and noodle products",
+    informas_cat_sweet_breads_cakes_muffins_sweet_buns_sweet_biscuits_sweet_glutinous_rice_balls_or_cakes_high_fat_savoury_biscuits_pies_and_pastries = "Sweet breads, cakes, muffins, sweet buns, sweet biscuits, sweet glutinous rice balls or cakes, high fat savoury biscuits",
+    informas_cat_meat_and_meat_alternatives_processed_or_preserved_in_salt = "Meat and meat alternatives processed or preserved in salt",
+    informas_cat_sweet_snack_foods = "Sweet snack foods",
+    informas_cat_savoury_snack_foods_added_salt_or_fat = "Savoury snack foods (added salt or fat)",
+    informas_cat_fruit_juice_drinks_98_percent_fruit = "Fruit juice/drinks (<98% fruit)",
+    informas_cat_full_cream_milks_and_yoghurts_3g_fat_100g_and_cheese = "Full cream milks and yoghurts (> 3g fat /100g) and cheese",
+    informas_cat_ice_cream_iced_confection_and_desserts = "Ice cream, iced confection and desserts",
+    informas_cat_chocolate_and_candy_includes_marshmallows_sugar_all_types = "Chocolate and candy - includes marshmallows, sugar (all types)",
+    informas_cat_fast_food_not_only_healthier_options_advertised = "Fast food (not only healthier options advertised)",
+    informas_cat_high_fat_salt_meals_frozen_or_packaged_meals_6g_saturated_fat_serve_900mg_sodium_serve = "High fat/salt meals - frozen or packaged meals (>6g saturated fat /serve, >900mg sodium /serve)",
+    informas_cat_other_high_fat_salt_products_include_meat_fish_bean_paste = "Other high fat/salt products – include meat/fish/bean paste",
+    informas_cat_sugar_sweetened_drinks_include_soft_drinks_sweetened_tea_drinks = "Sugar sweetened drinks - include soft drinks, sweetened tea drinks",
+    informas_cat_alcohol = "Alcohol",
+    informas_cat_recipe_additions_including_soup_cubes_oils_dried_herbs_and_seasonings = "Recipe additions (including soup cubes, oils, dried herbs and seasonings)",
+    informas_cat_vitamin_mineral_or_other_dietary_supplements_and_sugar_free_chewing_gum = "Vitamin/mineral or other dietary supplements, and sugar-free chewing gum",
+    informas_cat_tea_and_coffee_excluding_sweetened_powder_based_teas_or_coffees = "Tea and coffee (excluding sweetened powder-based teas or coffees)",
+    informas_cat_baby_and_toddler_milk_formulae = "Baby and toddler milk formulae",
+    nova_sales_processed_culinary_ingredient = "NOVA classification of foods - Processed Culinary Ingredient",
+    nova_sales_unprocessed_minimally_processed = "NOVA classification of foods - Unprocessed/ Minimally Processed",
+    nova_sales_processed_foods = "NOVA classification of foods - Processed Foods",
+    nova_sales_ultraprocessed_foods = "NOVA classification of foods - Ultraprocessed Foods",
+    ult_cat_not_ultra_processed_foods = "UltCat - Not Ultra-processed Foods",
+    ult_cat_ultraprocessed_foods = "UltCat - Ultraprocessed Foods",
+    prominence_level_low_prominence = "Prominence Level - Low",
+    prominence_level_medium_prominence = "Prominence Level - Medium",
+    prominence_level_high_prominence = "Prominence Level - High",
+  )%>%
+  labelled::set_variable_labels(!!!supermarket_store_labels[names(supermarket_store_labels) %in% names(.)]) #labeling variables from data dictionary
+
+```
+
+
+```{r final clean data, results="hide", include=FALSE}
+
+#Creating a named vector to quickly assign the variable labels
+
+supermarket_store_final_set2_labels <- as.data.frame(labelled::generate_dictionary(supermarket_store_final_set2))%>%
+  select(variable, label)%>%
+  deframe()
+
+supermarket_store_final_clean <- purrr::reduce(list(supermarket_store_final_set1, supermarket_store_final_set2,
+                                              supermarket_store_final_set3, supermarket_store_final_set4),
+                                         dplyr::left_join, by = 'key')%>%
+  mutate(across(c(q3p1_1:q5p2a_96), ~as.character(.x)),
+         across(c(q3p1_1:q5p2a_96), ~ifelse(advert_yes == "No", "No Advert at location", .x)),
+         across(c(q3p1_1:q5p2a_96), ~factor(.x, levels = c("Yes", "No", "No Advert at location" ))))%>%
+  mutate_if(is.factor, ~fct_drop(.x #, only = c("")
+            ))%>% #drop unused factor levels
+  labelled::set_variable_labels(!!!supermarket_store_final_set2_labels[names(supermarket_store_final_set2_labels) %in% names(.)])%>% #labeling variables from data dictionary
+  dplyr::select(county:id, locationexists, food, location_entrance:q3p10_combined, q5p1a:q5p2a_96, q7p2a_whole_grain_cereals:q7p2a_infant_formula,
+                q7p3_1:q7p3_300, q7p5_cooked:q7p5_both, shelves_shelf1_5:shelves_shelf_15ormore, level_1:level_3, q4p1_4us:q4p1_asis,
+                q4p2b1_1:q4p2b1_300, 
+            food_cat_chocolate_and_sugar_confectionery_energy_bars_sweet_topping_and_desserts:food_cat_sauces_dips_other_seasonings_and_dressings,
+            Storelengthaa:TotalAreaMSq, food_cat5_healthy:food_cat5_unhealthy, 
+            informas_cat_breads_rice_and_rice_products_without_added_fat_sugar_or_salt_noodles:informas_cat_baby_and_toddler_milk_formulae,
+            nova_sales_processed_culinary_ingredient:nova_sales_ultraprocessed_foods, ult_cat_not_ultra_processed_foods:ult_cat_ultraprocessed_foods,
+            Supermarket_Sizea, SESa, prominence_level_low_prominence:prominence_level_high_prominence) #Arranging columns
+
+```
+
+
+```{r saving locally supermarket final clean data, results="hide", include=FALSE}
+
+#saving final followup data
+write_csv(supermarket_store_final_clean, "UpdatedretailStoresData_clean_by_store.csv", na="")
+
+#saving as .Rdata
+save(supermarket_store_final, supermarket_store_final_clean, file = "supermarket_store_final.RData")
+
+```  
+
+
+```{r supermarket final data for analysis, results="hide", include=FALSE}
+
+# make dataset with variables for descriptive and inferential statistics
+
+  supermarket_store_final_analysis <- supermarket_store_final_clean%>%
+  dplyr::select(
+    #Store characteristics
+    county, checkouts, Store_Surfacearea11, location_entrance:location_checkout_edge, locationexists, food, 
+    Supermarket_Sizea, SESa, prominence_level_low_prominence:prominence_level_high_prominence, TotalAreaMSq,
+    #Adverts at store
+    advert_yes:q3p10_combined, q5p1a_0:q5p1a_12, q5p2a_1:q5p2a_96,
+    #Food/Drink Types and items sold in outlet
+    q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300,
+    #Types of foods sold in the outlet cooked, uncooked or both
+    q7p5_cooked:q7p5_both, 
+    #shelve number and level where food products are placed
+    shelves_shelf1_5:level_3,
+    #Food/Drink Brands and items advertised in outlet
+    q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300,
+    #WHO AFRO Food category
+    food_cat_chocolate_and_sugar_confectionery_energy_bars_sweet_topping_and_desserts:food_cat_sauces_dips_other_seasonings_and_dressings,
+    #INFORMA Food category
+    food_cat5_healthy, food_cat5_unhealthy,
+    informas_cat_breads_rice_and_rice_products_without_added_fat_sugar_or_salt_noodles:informas_cat_baby_and_toddler_milk_formulae,
+    #Nova classification of foods
+    nova_sales_processed_culinary_ingredient:nova_sales_ultraprocessed_foods
+                )
+
+```
+
+
+```{r create supemarket ggplot theme}
+
+# Creating own ggplot theme to be reused
+
+supermarket_store_theme <-
+    ggplot2::theme_minimal() +
+    ggplot2::theme(
+      legend.position="none",
+  legend.text = element_text(size = 12),
+  legend.title = element_text(size = 15, color = "red", face = "bold")
+  ,axis.text.y = element_text(angle = 0, size = 14)
+  ,axis.text.x = element_text(angle = 0, size = 14),
+  #plot.title = element_text(vjust = 0.5, face = "bold", size = 16),
+  plot.caption = element_text(angle = 0, size = 12, face = "italic"),
+  axis.title.x = element_text(size = 16),
+  axis.title.y = element_text(size = 16),
+  #axis.line.y = element_line(colour = "black",inherit.blank = FALSE),
+  panel.grid.major.y = element_blank(),
+  panel.grid.major.x = element_line(color = "grey"),
+  panel.grid.minor.x = element_blank()
+      )
+
+```
+
+# **Introduction**
+
+This study aimed to assess frequency and level of exposure and the persuasive power and techniques used for adverts and its influence on dietary behaviours. 
+
+# **Data**
+
+Quantitative data collection using INFORMAS tools assessed in door advertising in food outlets/stores.
+
+Data collected included:
+
+* type of food (NOVA classification, WHO)
+* size of advertisement
+* type of advert Billboard, Poster
+* promotional content
+
+## Data description
+
+* The data has `r ncol(supermarket_store)` variables and `r nrow(supermarket_store)` observations.
+
+* Data was transformed to `r ncol(supermarket_store_final_clean)` variables and `r nrow(supermarket_store_final_clean)` observations.
+
+```{r data description}
+
+  tbl_summary(supermarket_store_final_clean%>%dplyr::select(pilotoractual:consent), 
+                      type = list(
+                        all_dichotomous() ~ "categorical")
+                      , digits = list(all_continuous() ~ 2, 
+                                      all_categorical() ~ c(0, 1))
+                      , missing = "no" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Descriptives**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  as_flex_table() #covert gtsummary object to knitrkable object. also use as_flex_table() to maintain identation, footnotes, spanning headers
+
+```
+
+## Data Dictionary
+
+Information about the attributes of supermarket data contains 6 columns namely:
+
+- **pos:** Column position of variable in data
+- **variable:** Study variable
+- **label:** Description of study variable
+- **col_type:** Data type. i.e dbl(numeric variable), fct(categorical variable), date(date variable), chr(character/string variable)
+- **levels:** variable levels/categories
+- **value_labels:** value of variable categories
+
+
+```{r data dictionary, results='asis'}
+
+kable(
+  supermarket_store_variable_attr%>%
+    mutate(value_labels = supermarket_store_variable_attr1$value_labels)
+  )
+
+```  
+
+## Data Analysis
+
+The quantitative data was cleaned and analysed using R version 4.2.3 (2023). 
+
+Descriptive summary statistics in form of frequency, percentage, mean and standard deviation were generated to examine all selected variables.
+
+Chi-square test and Fisher's exact test where appropriate were used for categorical data to analyze difference in proportion of all selected variables as a function of county and store size.
+
+The results are presented in narrative and summary tables. Statistical significance was set at p<0.05
+
+  
+# **Descriptive statistics**
+
+## Summary Tables
+
+```{r final variables descriptives}
+
+ tbl_summary(supermarket_store_final_analysis, 
+                      type = list(
+                        c(checkouts) ~ "continuous2",
+                        all_dichotomous() ~ "categorical"
+                        ,all_continuous() ~ "continuous2"
+                        )
+                      , statistic = all_continuous() ~ c(
+                        "{mean} ({sd})",
+                        "{median} ({p25}, {p75})",
+                        "{min}, {max}" )
+                      , digits = list(all_continuous() ~ 2, 
+                                      all_categorical() ~ c(0, 1))
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Variables**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  modify_footnote(
+    all_stat_cols() ~ "Mean (SD); Median (IQR); Range; Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to knitrkable object. also use as_flex_table() to maintain identation, footnotes, spanning headers
+
+```  
+
+
+## Plots
+
+```{r foods/drinks items sold, fig.width=10, fig.height=6}
+
+#Top 20 foods/drinks items sold
+
+supermarket_store_final_analysis%>%
+  dplyr::select(q7p3_1:q7p3_300)%>%
+  pivot_longer(cols = everything(),
+               names_to = "items",
+               values_to = "value")%>%
+  left_join(as.data.frame(labelled::generate_dictionary(supermarket_store_final_clean))%>%dplyr::select(variable, label), 
+            by = c("items" = "variable"))%>%
+  mutate(count = 1)%>%
+  filter(value=="Yes")%>%
+  group_by(items, label, value)%>%
+  summarise(count = sum(count), .groups = 'drop')%>%
+  mutate(p = round((count/nrow(supermarket_store_final_analysis))*100,1))%>%
+  arrange(-count)%>%
+  slice_max(count, n=20, with_ties=FALSE)%>% #Top 20 by count
+  mutate(label = fct_rev(as_factor(label)))%>%
+  ggplot(aes(fill=value, y = count, x=label))+
+  geom_bar(position = "dodge", stat = "identity", width=0.8)+
+  geom_text(aes(label= paste0(count," (", p,"%)" )), vjust=0.4, hjust=-0.1,
+            position = position_dodge(0.9), color="black", size=4.5)+
+  #scale_y_continuous(n.breaks = 5)+
+  scale_y_continuous(breaks = seq(0, 110, by = 10), limits = c(0, 125))+
+  supermarket_store_theme+
+  geom_hline(yintercept = 0, color = "black")+
+  labs(x= "food/drink items sold", y="No. of stores", fill="", caption = "N=114")+
+  coord_flip()+
+  guides(fill= guide_legend(reverse = TRUE))
+
+```
+
+
+```{r foods/drinks items advertised, fig.width=10, fig.height=6}
+
+#Top 20 foods/drinks items advertised
+
+supermarket_store_final_analysis%>%
+  dplyr::select(q4p2b1_1:q4p2b1_300)%>%
+  pivot_longer(cols = everything(),
+               names_to = "items",
+               values_to = "value")%>%
+  left_join(as.data.frame(labelled::generate_dictionary(supermarket_store_final_clean))%>%dplyr::select(variable, label), 
+            by = c("items" = "variable"))%>%
+  mutate(count = 1)%>%
+  filter(value=="Yes")%>%
+  group_by(items, label, value)%>%
+  summarise(count = sum(count), .groups = 'drop')%>%
+  mutate(p = round((count/nrow(supermarket_store_final_analysis))*100,1))%>%
+  arrange(-count)%>%
+  slice_max(count, n=20, with_ties=FALSE)%>% #Top 20 by count
+  mutate(label = fct_rev(as_factor(label)))%>%
+  ggplot(aes(fill=value, y = count, x=label))+
+  geom_bar(position = "dodge", stat = "identity", width=0.8)+
+  geom_text(aes(label= paste0(count," (", p,"%)" )), vjust=0.4, hjust=-0.1,
+            position = position_dodge(0.9), color="black", size=4.5)+
+  #scale_y_continuous(n.breaks = 5)+
+  scale_y_continuous(breaks = seq(0, 50, by = 10), limits = c(0, 55))+
+  supermarket_store_theme+
+  geom_hline(yintercept = 0, color = "black")+
+  labs(x= "food/drink items advertised", y="No. of stores", fill="", caption = "N=114")+
+  coord_flip()+
+  guides(fill= guide_legend(reverse = TRUE))
+
+```
+
+```{r brands advertised, fig.width=10, fig.height=6}
+
+#Top 20 Food/drink brand name advertised
+
+ supermarket_store_final_analysis%>%
+  dplyr::select(q4p1_4us:q4p1_asis)%>%
+  pivot_longer(cols = everything(),
+               names_to = "items",
+               values_to = "value")%>%
+  left_join(as.data.frame(labelled::generate_dictionary(supermarket_store_final_clean))%>%dplyr::select(variable, label), 
+            by = c("items" = "variable"))%>%
+  mutate(label = gsub("Food/drink brand name advertised - ", "", label),
+         count = 1)%>%
+  filter(value=="Yes")%>%
+  group_by(items, label, value)%>%
+  summarise(count = sum(count), .groups = 'drop')%>%
+  mutate(p = round((count/nrow(supermarket_store_final_analysis))*100,1))%>%
+  arrange(-count)%>%
+  slice_max(count, n=20, with_ties=FALSE)%>% #Top 20 by count
+  mutate(label = fct_rev(as_factor(label)))%>%
+  ggplot(aes(fill=value, y = count, x=label))+
+  geom_bar(position = "dodge", stat = "identity", width=0.8)+
+  geom_text(aes(label= paste0(count," (", p,"%)" )), vjust=0.4, hjust=-0.1,
+            position = position_dodge(0.9), color="black", size=4.5)+
+  #scale_y_continuous(n.breaks = 5)+
+  scale_y_continuous(breaks = seq(0, 50, by = 10), limits = c(0, 50))+
+  supermarket_store_theme+
+  geom_hline(yintercept = 0, color = "black")+
+  labs(x= "Food/drink brand name advertised", y="No. of stores", fill="", caption = "N=114")+
+  coord_flip()+
+  guides(fill= guide_legend(reverse = TRUE))
+
+```
+  
+# **Inferential statistics**
+
+## County
+
+```{r final variables by county}
+
+  tbl_summary(supermarket_store_final_analysis%>%dplyr::select(-c(q7p3_1:q7p3_300, q4p2b1_1:q4p2b1_300)),
+              by = county,
+                      type = list(
+                        c(checkouts) ~ "continuous2",
+                        all_dichotomous() ~ "categorical"
+                         ,all_continuous() ~ "continuous2"
+                        )
+                      , statistic = all_continuous() ~ c(
+                                      "{mean} ({sd})", 
+                                      "{median} ({p25}, {p75})", 
+                                      "{min}, {max}")
+                       , digits = list(all_continuous() ~ 2, 
+                                      all_categorical() ~ c(0, 1))
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Variables**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  #add_overall() %>%
+  #add_difference() %>% #add column for difference between two group, confidence interval, and p-value
+  modify_spanning_header(c("stat_1", "stat_2", "stat_3") ~ "**County**")%>%
+  #modify_caption("**Table 1. Patient Characteristics**")%>%
+  modify_footnote(
+    all_stat_cols() ~ "Mean (SD); Median (IQR); Range; Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object. 
+
+```
+
+## Supermarket Size
+
+```{r final variables by Supermarket Size}
+
+  tbl_summary(supermarket_store_final_analysis%>%dplyr::select(-c(q7p3_1:q7p3_300, q4p2b1_1:q4p2b1_300)),
+              by = Supermarket_Sizea,
+                      type = list(
+                        c(checkouts) ~ "continuous2",
+                        all_dichotomous() ~ "categorical"
+                         ,all_continuous() ~ "continuous2"
+                        )
+                      , statistic = all_continuous() ~ c(
+                                      "{mean} ({sd})", 
+                                      "{median} ({p25}, {p75})", 
+                                      "{min}, {max}")
+                       , digits = list(all_continuous() ~ 2, 
+                                      all_categorical() ~ c(0, 1))
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Variables**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  #add_overall() %>%
+  #add_difference() %>% #add column for difference between two group, confidence interval, and p-value
+  modify_spanning_header(c("stat_1", "stat_2", "stat_3") ~ "**Store Size**")%>%
+  #modify_caption("**Table 1. Patient Characteristics**")%>%
+  modify_footnote(
+    all_stat_cols() ~ "Mean (SD); Median (IQR); Range; Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object. 
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
