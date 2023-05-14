@@ -4,17 +4,14 @@ author: "Reinpeter"
 date: "`r Sys.Date()`"
 output:
   word_document: 
-    fig_width: 12
-    fig_height: 8
     number_sections: yes
   pdf_document:
-    fig_width: 12
-    fig_height: 8
     number_sections: yes
   html_document:
     toc: yes
     toc_depth: 4
     number_sections: yes
+  
 ---
 
 
@@ -180,7 +177,6 @@ theme_gtsummary_compact()
 ```{r assigning variable labels}
 
 #Creating a named vector to quickly assign the variable labels
-
 supermarket_store_labels <- supermarket_store_variable_attr%>%
   select(variable, label)%>%
   deframe()
@@ -251,7 +247,7 @@ supermarket_store_final_set1 <- supermarket_store_final%>%
 supermarket_store_final_set2 <- supermarket_store_final%>%
   dplyr::select(key,location:setofrp_7, advert, q3p1, q3p5a, q3p7, q3p7a, q3p8, q3p9, q3p10, q5p1a:q5p2b,
                 setofrp2:q7p3, q7p3_1:q7p3_300, q7p3b, q7p5, q7p6, shelves:depth)%>%
-  dplyr::select(-c(setofrp_7, q3p7a, q3p9, q5p1b, q5p2b, setofrp2, parent_key, oid, q7p2b,q7p3, q7p3b,
+  dplyr::select(-c(setofrp_7, q3p1, q3p7a, q3p9, q5p1b, q5p2b, setofrp2, parent_key, oid, q7p2b,q7p3, q7p3b,
                    q7p6, level,length, width, depth))%>% #Keeping track of unused variables
   mutate(location = fct_recode(location,
                           "Entrance" = "Entrance (Area within 3m in front of the store entrance (or security barrier))",
@@ -267,21 +263,21 @@ supermarket_store_final_set2 <- supermarket_store_final%>%
            #q7p2a = gsub("(", "", q7p2a, fixed = TRUE), # "Fixed = TRUE" disables regex
            #q7p2a = gsub(")", "", q7p2a, fixed = TRUE), # "Fixed = TRUE" disables regex
          )%>%
-  fastDummies::dummy_cols(select_columns = c("location", "advert", "q3p1", "q3p5a", "q3p7", "q3p8", "q3p10", "q7p2a", "q7p5", "shelves"),
+  fastDummies::dummy_cols(select_columns = c("location", "advert", "q3p5a", "q3p7", "q3p8", "q3p10", "q7p2a", "q7p5", "shelves"),
              ignore_na = TRUE, #ignores any NA values in the column
-             remove_selected_columns = FALSE #removes the columns used to generate the dummy columns.
+             remove_selected_columns = TRUE #removes the columns used to generate the dummy columns.
              )%>%
   janitor::clean_names()%>%
-  dplyr::select(-c(advert_no, location, advert, q3p5a, q3p7, q3p8, q3p10, q7p2a, q7p5, shelves ))%>%
+  dplyr::select(-c(advert_no))%>%
   group_by(key,locationexists, food)%>%
-  summarise(across(c(location_entrance:advert_yes, q3p1, q3p1_1:q3p10_combined, q5p1a:q5p2a_96,
-                     q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300, q7p5_cooked:q7p5_both, q7p5_not_in_cooked_uncooked_category, 
-                     shelves_shelf1_5:shelves_shelf_15ormore, level_1:level_3), ~ sum(.x, na.rm = TRUE)), .groups = "drop")%>%
-  mutate(across(c(location_entrance:advert_yes, q3p1_1:q3p10_combined, q5p1a:q5p2a_96, q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300,
+  summarise(across(c(location_entrance:advert_yes, q5p1a:q5p2a_96, q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300,
+                     q7p5_cooked:q7p5_both, q7p5_not_in_cooked_uncooked_category, shelves_shelf1_5:shelves_shelf_15ormore,
+                     level_1:level_3), ~ sum(.x, na.rm = TRUE)), .groups = "drop")%>%
+  mutate(across(c(location_entrance:advert_yes, q5p1a:q5p2a_96, q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300,
                   q7p5_cooked:q7p5_both, q7p5_not_in_cooked_uncooked_category, shelves_shelf1_5:shelves_shelf_15ormore,
                   level_1:level_3), ~ifelse(.x == 0, "No",
                                  ifelse(.x > 0 , "Yes", .x))),
-         across(c(location_entrance:advert_yes, q3p1_1:q3p10_combined, q5p1a:q5p2a_96, q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300,
+         across(c(location_entrance:advert_yes, q5p1a:q5p2a_96, q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300,
                   q7p5_cooked:q7p5_both, q7p5_not_in_cooked_uncooked_category, shelves_shelf1_5:shelves_shelf_15ormore, 
                   level_1:level_3), ~factor(.x, levels = c("Yes", "No"))))%>%
   labelled::set_variable_labels( #labeling new variables
@@ -294,18 +290,6 @@ supermarket_store_final_set2 <- supermarket_store_final%>%
     location_checkout_side = "Location - Checkout side (The area alongside and just in front of the checkout – often look",
     location_checkout_edge = "Location - Checkout edge (The endcap of the checkout which faces the rest of the store.)",
     advert_yes = "Do we have adverts at location - Yes",
-    q3p1_1 = "Q3.1: Advertisment Number - 1",
-    q3p1_2 = "Q3.1: Advertisment Number - 2",
-    q3p1_3 = "Q3.1: Advertisment Number - 3",
-    q3p1_4 = "Q3.1: Advertisment Number - 4",
-    q3p1_5 = "Q3.1: Advertisment Number - 5",
-    q3p1_6 = "Q3.1: Advertisment Number - 6",
-    q3p1_7 = "Q3.1: Advertisment Number - 7",
-    q3p1_8 = "Q3.1: Advertisment Number - 8",
-    q3p1_9 = "Q3.1: Advertisment Number - 9",
-    q3p1_10 = "Q3.1: Advertisment Number - 10",
-    q3p1_11 = "Q3.1: Advertisment Number - 11",
-    q3p1_13 = "Q3.1: Advertisment Number - 13",
     q3p5a_small_a4_but_1_3m_x_1_9m = "Q3.5: Size of the advertisement - Small ( > A4 but <1.3m X 1.9m)",
     q3p5a_medium_1_3m_x_1_9m_but_2_0m_x_2_5m = "Q3.5: Size of the advertisement - Medium (<1.3m X 1.9m but < 2.0m X 2.5m)",
     q3p5a_large_2m_x_2_5m = "Q3.5: Size of the advertisement - Large (2m X 2.5m)",
@@ -368,7 +352,6 @@ supermarket_store_final_set2 <- supermarket_store_final%>%
     shelves_shelf_15ormore = "Shelve number where the food category is placed: Shelf 15 or more"
   )%>%
   labelled::set_variable_labels(!!!supermarket_store_labels[names(supermarket_store_labels) %in% names(.)]) #labeling variables from data dictionary
-
 
 
 # data to wide format - Food/Drink Brands advertised in outlet
@@ -601,14 +584,14 @@ supermarket_store_final_set2_3_4_labels <- as.data.frame(labelled::generate_dict
 supermarket_store_final_clean <- purrr::reduce(list(supermarket_store_final_set1, supermarket_store_final_set2,
                                               supermarket_store_final_set3, supermarket_store_final_set4),
                                          dplyr::left_join, by = 'key')%>%
-  mutate(q3p1 = if_else(advert_yes == "No", NA, q3p1),
-    across(c(q3p1_1:q5p2a_96, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300), ~as.character(.x)),
-         across(c(q3p1_1:q5p2a_96, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300), ~ifelse(advert_yes == "No", "No Advert at location", .x)),
-         across(c(q3p1_1:q5p2a_96, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300), ~factor(.x, levels = c("Yes", "No", "No Advert at location" ))))%>%
+  mutate(
+    across(c(q5p1a:q5p2a_96, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300), ~as.character(.x)),
+         across(c(q5p1a:q5p2a_96, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300), ~ifelse(advert_yes == "No", "No Advert at location", .x)),
+         across(c(q5p1a:q5p2a_96, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300), ~factor(.x, levels = c("Yes", "No", "No Advert at location" ))))%>%
   mutate_if(is.factor, ~fct_drop(.x #, only = c("")
             ))%>%
   labelled::set_variable_labels(!!!supermarket_store_final_set2_3_4_labels[names(supermarket_store_final_set2_3_4_labels) %in% names(.)])%>% #labeling variables from data dictionary
-  dplyr::select(county:id, locationexists, food, location_entrance:advert_yes, q3p1, q3p1_1:q3p10_combined, q5p1a:q5p2a_96,
+  dplyr::select(county:id, locationexists, food, location_entrance:advert_yes, q5p1a:q5p2a_96,
                 q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300, q7p5_cooked:q7p5_both, q7p5_not_in_cooked_uncooked_category,
                 shelves_shelf1_5:shelves_shelf_15ormore, level_1:level_3, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300, 
             food_cat_chocolate_and_sugar_confectionery_energy_bars_sweet_topping_and_desserts:food_cat_sauces_dips_other_seasonings_and_dressings,
@@ -634,14 +617,13 @@ save(supermarket_store, supermarket_store_final, supermarket_store_final_clean, 
 ```{r supermarket final data for analysis, results="hide", include=FALSE}
 
 # make dataset with variables for descriptive and inferential statistics
-
   supermarket_store_final_analysis <- supermarket_store_final_clean%>%
   dplyr::select(
     #Store characteristics
     county, checkouts, Store_Surfacearea11, location_entrance:location_checkout_edge, locationexists, food, 
     Supermarket_Sizea, SESa, prominence_level_low_prominence:prominence_level_high_prominence, TotalAreaMSq,
     #Adverts at store
-    advert_yes:q3p10_combined, q5p1a_0:q5p1a_12, q5p2a_1:q5p2a_96,
+    advert_yes, q5p1a_0:q5p1a_12, q5p2a_1:q5p2a_96,
     #Food/Drink Types and items sold in outlet
     q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300,
     #Types of foods sold in the outlet cooked, uncooked or both
@@ -656,8 +638,7 @@ save(supermarket_store, supermarket_store_final, supermarket_store_final_clean, 
     food_cat5_healthy, food_cat5_unhealthy,
     informas_cat_breads_rice_and_rice_products_without_added_fat_sugar_or_salt_noodles:informas_cat_baby_and_toddler_milk_formulae,
     #Nova classification of foods
-    nova_sales_processed_culinary_ingredient:nova_sales_ultraprocessed_foods
-                )
+    nova_sales_processed_culinary_ingredient:nova_sales_ultraprocessed_foods )
 
 ```
 
@@ -977,7 +958,43 @@ supermarket_store_final_analysis%>%
 ```
 
 
+## Adverts at location
 
+```{r final variables by Adverts at location}
+
+  tbl_summary(supermarket_store_final_analysis%>%dplyr::select(-c(q7p3_1:q7p3_300, q4p2b1_1:q4p2b1_300)),
+              by = advert_yes,
+                      type = list(
+                        c(checkouts) ~ "continuous2",
+                        all_dichotomous() ~ "categorical"
+                         ,all_continuous() ~ "continuous2"
+                        )
+                      , statistic = all_continuous() ~ c(
+                                      "{mean} ({sd})", 
+                                      "{median} ({p25}, {p75})", 
+                                      "{min}, {max}")
+                       , digits = list(all_continuous() ~ 2, 
+                                      all_categorical() ~ c(0, 1))
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Variables**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  #add_overall() %>%
+  #add_difference() %>% #add column for difference between two group, confidence interval, and p-value
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Do we have adverts at location**")%>%
+  #modify_caption("**Table 1. Patient Characteristics**")%>%
+  modify_footnote(
+    all_stat_cols() ~ "Mean (SD); Median (IQR); Range; Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object. 
+
+```
 
 
 
