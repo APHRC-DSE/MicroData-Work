@@ -1,5 +1,5 @@
 ---
-title: "Supermarket data"
+title: "Supermarket data - Stores"
 author: "Reinpeter"
 date: "`r Sys.Date()`"
 output:
@@ -199,9 +199,9 @@ supermarket_store_labels <- supermarket_store_variable_attr%>%
          shelves = factor(shelves, levels = c("shelf1_5", "shelf6_10", "shelf11_15", "shelf_15ormore")),
          q4p1 = ifelse(q4p1 == "Brookside, Tuzo,molo milk and mountain fresh", "Brookside Tuzo Molo Mountain fresh",
                 ifelse(q4p1 == "KCC gold crown milk, Daima milk,Lato milk", "KCC Daima Lato",
-                ifelse(q4p1 == "Lato milk,victory farm yoghurt,daima milk", "Lato Victory farm Daima",
-                ifelse(q4p1 == "Fanta soda 300ml,  cocacola soda 1.25 and 2 litres and 1 litre minute maid juice", "Coca cola minute maid",
-                ifelse(q4p1 == "Molo milk fresh milk", "Molo fresh milk",
+                ifelse(q4p1 == "Lato milk,victory farm yoghurt,daima milk", "Lato Victory Farm Daima",
+                ifelse(q4p1 == "Fanta soda 300ml,  cocacola soda 1.25 and 2 litres and 1 litre minute maid juice", "Coca Cola minute maid",
+                ifelse(q4p1 == "Molo milk fresh milk", "Molo Fresh milk",
                 ifelse(q4p1 == "Ribena, Lucozade", "Ribena Lucozade",
                 ifelse(q4p1 == "Raha drinking chocolate  Asis premium tea", "Raha Asis",
                 ifelse(str_detect(q4p1, "Salit"), "Salit",
@@ -262,25 +262,28 @@ supermarket_store_final_set2 <- supermarket_store_final%>%
                           "Island Medium" = "Island Medium (These are temporary displays that are often moved or altered. The",
                           "Checkout side" = "Checkout side (The area alongside and just in front of the checkout – often look",
                           "Checkout edge" = "Checkout edge (The endcap of the checkout which faces the rest of the store.)" ),
-           #q7p2a = str_to_lower(q7p2a),
+         q7p5 = fct_na_value_to_level(q7p5, level = "Not in cooked/uncooked category")
+           #,q7p2a = str_to_lower(q7p2a),
            #q7p2a = gsub("(", "", q7p2a, fixed = TRUE), # "Fixed = TRUE" disables regex
            #q7p2a = gsub(")", "", q7p2a, fixed = TRUE), # "Fixed = TRUE" disables regex
          )%>%
   fastDummies::dummy_cols(select_columns = c("location", "advert", "q3p1", "q3p5a", "q3p7", "q3p8", "q3p10", "q7p2a", "q7p5", "shelves"),
              ignore_na = TRUE, #ignores any NA values in the column
-             remove_selected_columns = TRUE #removes the columns used to generate the dummy columns.
+             remove_selected_columns = FALSE #removes the columns used to generate the dummy columns.
              )%>%
   janitor::clean_names()%>%
-  dplyr::select(-c(advert_no))%>%
+  dplyr::select(-c(advert_no, location, advert, q3p5a, q3p7, q3p8, q3p10, q7p2a, q7p5, shelves ))%>%
   group_by(key,locationexists, food)%>%
-  summarise(across(c(location_entrance:q3p10_combined, q5p1a:q5p2a_96, q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300,
-                     q7p5_cooked:q7p5_both, shelves_shelf1_5:shelves_shelf_15ormore, level_1:level_3
-                     ), ~ sum(.x, na.rm = TRUE)), .groups = "drop")%>%
-  mutate(across(c(location_entrance:q3p10_combined, q5p1a:q5p2a_96, q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300,
-                  q7p5_cooked:q7p5_both, shelves_shelf1_5:shelves_shelf_15ormore, level_1:level_3), ~ifelse(.x == 0, "No",
+  summarise(across(c(location_entrance:advert_yes, q3p1, q3p1_1:q3p10_combined, q5p1a:q5p2a_96,
+                     q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300, q7p5_cooked:q7p5_both, q7p5_not_in_cooked_uncooked_category, 
+                     shelves_shelf1_5:shelves_shelf_15ormore, level_1:level_3), ~ sum(.x, na.rm = TRUE)), .groups = "drop")%>%
+  mutate(across(c(location_entrance:advert_yes, q3p1_1:q3p10_combined, q5p1a:q5p2a_96, q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300,
+                  q7p5_cooked:q7p5_both, q7p5_not_in_cooked_uncooked_category, shelves_shelf1_5:shelves_shelf_15ormore,
+                  level_1:level_3), ~ifelse(.x == 0, "No",
                                  ifelse(.x > 0 , "Yes", .x))),
-         across(c(location_entrance:q3p10_combined, q5p1a:q5p2a_96, q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300,
-                  q7p5_cooked:q7p5_both, shelves_shelf1_5:shelves_shelf_15ormore, level_1:level_3), ~factor(.x, levels = c("Yes", "No"))))%>%
+         across(c(location_entrance:advert_yes, q3p1_1:q3p10_combined, q5p1a:q5p2a_96, q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300,
+                  q7p5_cooked:q7p5_both, q7p5_not_in_cooked_uncooked_category, shelves_shelf1_5:shelves_shelf_15ormore, 
+                  level_1:level_3), ~factor(.x, levels = c("Yes", "No"))))%>%
   labelled::set_variable_labels( #labeling new variables
     location_entrance = "Location - Entrance (Area within 3m in front of the store entrance (or security barrier))",
     location_endcap_a = "Location - Endcap A (Endcaps (also known as the end of aisles) that face the front of the s",
@@ -358,6 +361,7 @@ supermarket_store_final_set2 <- supermarket_store_final%>%
     q7p5_cooked = "Q7.5: Types of foods sold/advertised in the outlet - Cooked",
     q7p5_un_cooked = "Q7.5: Types of foods sold/advertised in the outlet - Uncooked",
     q7p5_both = "Q7.5: Types of foods sold/advertised in the outlet - Both Uncooked and Cooked",
+    q7p5_not_in_cooked_uncooked_category = "Q7.5: Types of foods sold/advertised in the outlet - Not in Uncooked and Cooked category",
     shelves_shelf1_5 = "Shelve number where the food category is placed: Shelf 1-5",
     shelves_shelf6_10 = "Shelve number where the food category is placed: Shelf 6-10",
     shelves_shelf11_15 = "Shelve number where the food category is placed: Shelf 11-15",
@@ -587,22 +591,25 @@ supermarket_store_final_set4 <- supermarket_store_final%>%
 
 #Creating a named vector to quickly assign the variable labels
 
-supermarket_store_final_set2_labels <- as.data.frame(labelled::generate_dictionary(supermarket_store_final_set2))%>%
+supermarket_store_final_set2_3_4_labels <- as.data.frame(labelled::generate_dictionary(
+  purrr::reduce(list(supermarket_store_final_set2,supermarket_store_final_set3, supermarket_store_final_set4),
+                                         dplyr::left_join, by = 'key')
+))%>%
   select(variable, label)%>%
   deframe()
 
 supermarket_store_final_clean <- purrr::reduce(list(supermarket_store_final_set1, supermarket_store_final_set2,
                                               supermarket_store_final_set3, supermarket_store_final_set4),
                                          dplyr::left_join, by = 'key')%>%
-  mutate(across(c(q3p1_1:q5p2a_96), ~as.character(.x)),
-         across(c(q3p1_1:q5p2a_96), ~ifelse(advert_yes == "No", "No Advert at location", .x)),
-         across(c(q3p1_1:q5p2a_96), ~factor(.x, levels = c("Yes", "No", "No Advert at location" ))))%>%
+  mutate(across(c(q3p1_1:q5p2a_96, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300), ~as.character(.x)),
+         across(c(q3p1_1:q5p2a_96, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300), ~ifelse(advert_yes == "No", "No Advert at location", .x)),
+         across(c(q3p1_1:q5p2a_96, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300), ~factor(.x, levels = c("Yes", "No", "No Advert at location" ))))%>%
   mutate_if(is.factor, ~fct_drop(.x #, only = c("")
-            ))%>% #drop unused factor levels
-  labelled::set_variable_labels(!!!supermarket_store_final_set2_labels[names(supermarket_store_final_set2_labels) %in% names(.)])%>% #labeling variables from data dictionary
-  dplyr::select(county:id, locationexists, food, location_entrance:q3p10_combined, q5p1a:q5p2a_96, q7p2a_whole_grain_cereals:q7p2a_infant_formula,
-                q7p3_1:q7p3_300, q7p5_cooked:q7p5_both, shelves_shelf1_5:shelves_shelf_15ormore, level_1:level_3, q4p1_4us:q4p1_asis,
-                q4p2b1_1:q4p2b1_300, 
+            ))%>%
+  labelled::set_variable_labels(!!!supermarket_store_final_set2_3_4_labels[names(supermarket_store_final_set2_3_4_labels) %in% names(.)])%>% #labeling variables from data dictionary
+  dplyr::select(county:id, locationexists, food, location_entrance:advert_yes, q3p1, q3p1_1:q3p10_combined, q5p1a:q5p2a_96,
+                q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300, q7p5_cooked:q7p5_both, q7p5_not_in_cooked_uncooked_category,
+                shelves_shelf1_5:shelves_shelf_15ormore, level_1:level_3, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300, 
             food_cat_chocolate_and_sugar_confectionery_energy_bars_sweet_topping_and_desserts:food_cat_sauces_dips_other_seasonings_and_dressings,
             Storelengthaa:TotalAreaMSq, food_cat5_healthy:food_cat5_unhealthy, 
             informas_cat_breads_rice_and_rice_products_without_added_fat_sugar_or_salt_noodles:informas_cat_baby_and_toddler_milk_formulae,
@@ -684,14 +691,16 @@ This study aimed to assess frequency and level of exposure and the persuasive po
 
 # **Data**
 
-Quantitative data collection using INFORMAS tools assessed in door advertising in food outlets/stores.
+Quantitative data collection using INFORMAS tools assessed in-door advertising in supermarkets/outlets.
 
 Data collected included:
 
-* type of food (NOVA classification, WHO)
+* location of supermarkets/outlets (county, Subcounty, Ward)
+* type of food sold (NOVA classification, WHO)
+* food items and brands advertised
 * size of advertisement
 * type of advert Billboard, Poster
-* promotional content
+* promotional content i.e All advertising promotional characters, premium offers and/or nutrition and health claims recorded
 
 ## Data description
 
@@ -852,6 +861,7 @@ supermarket_store_final_analysis%>%
   guides(fill= guide_legend(reverse = TRUE))
 
 ```
+
 
 ```{r brands advertised, fig.width=10, fig.height=6}
 
