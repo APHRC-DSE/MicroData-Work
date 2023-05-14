@@ -258,7 +258,7 @@ supermarket_store_final_set2 <- supermarket_store_final%>%
                           "Island Medium" = "Island Medium (These are temporary displays that are often moved or altered. The",
                           "Checkout side" = "Checkout side (The area alongside and just in front of the checkout – often look",
                           "Checkout edge" = "Checkout edge (The endcap of the checkout which faces the rest of the store.)" ),
-         q7p5 = fct_na_value_to_level(q7p5, level = "Not in cooked/uncooked category")
+         q7p5 = fct_na_value_to_level(q7p5, level = "Not with cooked/uncooked category")
            #,q7p2a = str_to_lower(q7p2a),
            #q7p2a = gsub("(", "", q7p2a, fixed = TRUE), # "Fixed = TRUE" disables regex
            #q7p2a = gsub(")", "", q7p2a, fixed = TRUE), # "Fixed = TRUE" disables regex
@@ -348,7 +348,7 @@ supermarket_store_final_set2 <- supermarket_store_final%>%
     q7p5_cooked = "Q7.5: Types of foods sold/advertised in the outlet - Cooked",
     q7p5_un_cooked = "Q7.5: Types of foods sold/advertised in the outlet - Uncooked",
     q7p5_both = "Q7.5: Types of foods sold/advertised in the outlet - Both Uncooked and Cooked",
-    q7p5_not_in_cooked_uncooked_category = "Q7.5: Types of foods sold/advertised in the outlet - Not in Uncooked and Cooked category",
+    q7p5_not_with_cooked_uncooked_category = "Q7.5: Types of foods sold/advertised in the outlet - Not with Uncooked and Cooked category",
     shelves_shelf1_5 = "Shelve number where the food category is placed: Shelf 1-5",
     shelves_shelf6_10 = "Shelve number where the food category is placed: Shelf 6-10",
     shelves_shelf11_15 = "Shelve number where the food category is placed: Shelf 11-15",
@@ -742,7 +742,7 @@ Descriptive summary statistics in form of frequency, percentage, mean and standa
 
 Chi-square test and Fisher's exact test where appropriate were used for categorical data to analyze difference in proportion of all selected variables as a function of county and store size.
 
-For continous data, Kruskal-Wallis rank sum test where appropriate was used to examine the comparison of county and store size with continous variables.
+For continous data, Wilcoxon rank sum test/Kruskal-Wallis rank sum test where appropriate was used to examine the comparison of county, store size and adverts at location(Yes/No) with continous variables.
 
 The results are presented in narrative and summary tables. Statistical significance was set at p<0.05
 
