@@ -601,7 +601,8 @@ supermarket_store_final_set2_3_4_labels <- as.data.frame(labelled::generate_dict
 supermarket_store_final_clean <- purrr::reduce(list(supermarket_store_final_set1, supermarket_store_final_set2,
                                               supermarket_store_final_set3, supermarket_store_final_set4),
                                          dplyr::left_join, by = 'key')%>%
-  mutate(across(c(q3p1_1:q5p2a_96, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300), ~as.character(.x)),
+  mutate(q3p1 = if_else(advert_yes == "No", NA, q3p1),
+    across(c(q3p1_1:q5p2a_96, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300), ~as.character(.x)),
          across(c(q3p1_1:q5p2a_96, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300), ~ifelse(advert_yes == "No", "No Advert at location", .x)),
          across(c(q3p1_1:q5p2a_96, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300), ~factor(.x, levels = c("Yes", "No", "No Advert at location" ))))%>%
   mutate_if(is.factor, ~fct_drop(.x #, only = c("")
