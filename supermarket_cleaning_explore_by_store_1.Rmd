@@ -644,7 +644,7 @@ save(supermarket_store, supermarket_store_final, supermarket_store_final_clean, 
     #Food/Drink Types and items sold in outlet
     q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300,
     #Types of foods sold in the outlet cooked, uncooked or both
-    q7p5_cooked:q7p5_both, 
+    q7p5_cooked:q7p5_both, q7p5_not_in_cooked_uncooked_category,
     #shelve number and level where food products are placed
     shelves_shelf1_5:level_3,
     #Food/Drink Brands and items advertised in outlet
