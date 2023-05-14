@@ -1,0 +1,655 @@
+---
+title: "Supermarket data - Items "
+author: "Reinpeter"
+date: "`r Sys.Date()`"
+output:
+  word_document: 
+    number_sections: yes
+  pdf_document:
+    number_sections: yes
+  html_document:
+    toc: yes
+    toc_depth: 4
+    number_sections: yes
+---
+
+
+```{r setup, results="hide", include=FALSE}
+
+## Set Chunk requirements
+knitr::opts_chunk$set(#include = TRUE,
+                      echo=FALSE, message = FALSE, warning = FALSE)
+
+options(scipen = 999) #turn off scientific notation for all variables
+
+```
+
+
+```{r setting working directory, include=FALSE, results = "hide"}
+
+## Setting work directory
+
+setwd(".")
+
+```
+
+
+```{r loading relevant packages, include=FALSE, results = "hide"}
+
+#library we need
+libs_supermarket <- c("googledrive" ,"tidyverse", "haven", "janitor", "knitr",
+                            "lubridate", "plotly", "gtsummary", "flextable", "fastDummies")
+
+#install missing libraries
+
+inatalled_libs_supermarket <- libs_supermarket  %in% rownames(installed.packages())
+if (any(inatalled_libs_supermarket==F)) {
+  install.packages(libs_supermarket[!inatalled_libs_supermarket])
+}
+
+#load libraries
+
+invisible(lapply(libs_supermarket, library, character.only=T))
+
+set_gtsummary_theme(list(
+  "tbl_summary-fn:percent_fun" = function(x) style_percent(x, digits = 1),
+  "tbl_summary-str:categorical_stat" = "{n} ({p}%)"
+))
+# Setting `Compact` theme
+theme_gtsummary_compact()
+
+```
+
+
+```{r importing saved Rdata files, results="hide", include=FALSE}
+
+#load .Rdata files
+
+supermarket_store_final_list <- list.files(path = ".", pattern = "supermarket_store_final.RData", full.names = TRUE)
+
+#supermarket_store data for assigning variable labels
+
+invisible(lapply(supermarket_store_final_list, load, .GlobalEnv))
+
+```
+
+
+```{r for assigning variable labels}
+
+#Creating a named vector to quickly assign the variable labels
+
+supermarket_item_labels <- as.data.frame(labelled::generate_dictionary(supermarket_store))%>%
+  select(variable, label)%>%
+  deframe()
+
+supermarket_item_final_labels <- as.data.frame(labelled::generate_dictionary(supermarket_store_final_clean))%>%
+  select(variable, label)%>%
+  deframe()
+
+
+```
+
+
+```{r googledrive downloading supermarket data, results="hide", include=FALSE}
+
+ drive_auth(#email = "guest360@aphrc.org"
+           )
+  #drive_user()
+
+  supermarket_item_file_id <- drive_find(shared_drive = c(shared_drive_find(pattern = "Data Science Programs")$id),
+           q = c("name contains 'UpdatedretailStoresData.dta'")) #search for a specific set of shared drives, use the query string q
+  
+  supermarket_item_local_download <- drive_download(supermarket_item_file_id$id, overwrite = TRUE)
+  
+```
+
+
+```{r reading supermarket data locally, results="hide", include=FALSE}
+
+  ##Reading the .dta with labelled vector converted to a factor
+  supermarket_item <- read_dta(paste0(supermarket_item_local_download$local_path))%>%
+  mutate_if(is.labelled, as_factor)%>%
+  labelled::set_variable_labels(!!!supermarket_item_labels[names(supermarket_item_labels) %in% names(.)]) #labeling variables from data dictionary
+
+  supermarket_item1 <- read_dta(paste0(supermarket_item_local_download$name))
+
+  supermarket_item_variable_attr <- as.data.frame(labelled::generate_dictionary(supermarket_item))
+
+  supermarket_item_variable_attr1 <- as.data.frame(labelled::look_for(supermarket_item1, labels = TRUE, values = TRUE))
+
+```  
+
+
+```{r final data, results="hide", include=FALSE}
+
+  supermarket_item_final <- supermarket_item%>%
+  mutate(across(c(q5p1a, q5p2a), ~as.numeric(.x)),
+         q5p2a = if_else(q5p2a_1 == 1, 0, q5p2a))%>%
+  mutate(shelves = ifelse(shelves < 6, "shelf1_5",
+                   ifelse(shelves < 11, "shelf6_10",
+                   ifelse(shelves < 16, "shelf11_15", "shelf_15ormore"))),
+         shelves = factor(shelves, levels = c("shelf1_5", "shelf6_10", "shelf11_15", "shelf_15ormore")),
+         q4p1 = ifelse(q4p1 == "Brookside, Tuzo,molo milk and mountain fresh", "Brookside; Tuzo; Molo; Mountain fresh",
+                ifelse(q4p1 == "KCC gold crown milk, Daima milk,Lato milk", "KCC; Daima; Lato",
+                ifelse(q4p1 == "Lato milk,victory farm yoghurt,daima milk", "Lato; Victory Farm; Daima",
+                ifelse(q4p1 == "Fanta soda 300ml,  cocacola soda 1.25 and 2 litres and 1 litre minute maid juice", "Coca Cola; minute maid",
+                ifelse(q4p1 == "Molo milk fresh milk", "Molo; Fresh milk",
+                ifelse(q4p1 == "Ribena, Lucozade", "Ribena; Lucozade",
+                ifelse(q4p1 == "Raha drinking chocolate  Asis premium tea", "Raha; Asis",
+                ifelse(str_detect(q4p1, "Salit"), "Salit",
+                ifelse(str_detect(q4p1, "Zits"), "Zits",
+                ifelse(str_detect(q4p1, "Zesta"), "Zesta", 
+                ifelse(str_detect(q4p1, "Yego"), "Yego", 
+                ifelse(str_detect(q4p1, "Tuzo"), "Tuzo", 
+                ifelse(str_detect(q4p1, "Supa loaf") | str_detect(q4p1, "Super loaf"), "Supa loaf", 
+                ifelse(str_detect(q4p1, "Royal bakers"), "Royal bakers",
+                ifelse(str_detect(q4p1, "Oreo"), "Oreo", 
+                ifelse(str_detect(q4p1, "Nuvita"), "Nuvita", 
+                ifelse(str_detect(q4p1, "Mumias sugar"), "Mumias", 
+                ifelse(str_detect(q4p1, "Molo milk"), "Molo", 
+                ifelse(str_detect(q4p1, "Mac coffee") | str_detect(q4p1, "Maccoffee"), "Mac coffee", 
+                ifelse(str_detect(q4p1, "Lyons maid"), "Lyons maid", 
+                ifelse(str_detect(q4p1, "Lucozade") | str_detect(q4p1, "Lucuzade"), "Lucozade", 
+                ifelse(str_detect(q4p1, "Lato milk"), "Lato", 
+                ifelse(str_detect(q4p1, "Knorr"), "Knorr",
+                ifelse(str_detect(q4p1, "Kinder joy") | str_detect(q4p1, "Kinderjoy"), "Kinder joy",
+                ifelse(str_detect(q4p1, "Kifaru maize flour"), "Kifaru", 
+                ifelse(str_detect(q4p1, "Kcc fresh milk"), "KCC", 
+                ifelse(str_detect(q4p1, "Juicy fresh sweets"), "Juicy fresh", 
+                ifelse(str_detect(q4p1, "Honest"), "Honest",
+                ifelse(str_detect(q4p1, "Fresh fry") | str_detect(q4p1, "Fresh Fri") | str_detect(q4p1, "Fresh fri"), "Fresh Fri", 
+                ifelse(str_detect(q4p1, "Farmers choice") | str_detect(q4p1, "Farmer's choice") , "Farmers choice", 
+                ifelse(str_detect(q4p1, "Fanta") | str_detect(q4p1, "Coca"), "Coca Cola", 
+                ifelse(str_detect(q4p1, "Dairyland"), "Dairyland", 
+                ifelse(str_detect(q4p1, "Dairymilk") | str_detect(q4p1, "Cadbury"), "Cadbury",
+                ifelse(str_detect(q4p1, "Daima"), "Daima",
+                ifelse(str_detect(q4p1, "Brookside"), "Brookside",
+                ifelse(str_detect(q4p1, "Ajab"), "Ajab", q4p1)))))))))))))))))))))))))))))))))))))%>%
+  labelled::set_variable_labels(!!!supermarket_item_labels[names(supermarket_item_labels) %in% names(.)]) #labeling variables from data dictionary
+   
+```
+
+
+```{r final subset data, results="hide", include=FALSE}
+
+# Dummy code location
+supermarket_item_final_set1 <- supermarket_item_final%>%
+  dplyr::select(key, location, q7p2a, food_cat, InformasCat)%>%
+  mutate(location = fct_recode(location,
+                          "Entrance" = "Entrance (Area within 3m in front of the store entrance (or security barrier))",
+                          "Endcap A" = "Endcap A (Endcaps (also known as the end of aisles) that face the front of the s",
+                          "Endcap B" = "Endcap B (Endcap B refers to the endcaps that face the back of the store. If a s",
+                          "Aisle Medium" = "Aisle Medium (All permanent aisle structures within the store. These include any",
+                          "Edge" = "Edge (This location includes anything along the perimeter of the store. This inc",
+                          "Island Medium" = "Island Medium (These are temporary displays that are often moved or altered. The",
+                          "Checkout side" = "Checkout side (The area alongside and just in front of the checkout – often look",
+                          "Checkout edge" = "Checkout edge (The endcap of the checkout which faces the rest of the store.)" )
+         )%>%
+  fastDummies::dummy_cols(select_columns = c("location", "q7p2a", "food_cat", "InformasCat"),
+             ignore_na = TRUE, #ignores any NA values in the column
+             remove_selected_columns = TRUE #removes the columns used to generate the dummy columns.
+             )%>%
+  janitor::clean_names()%>%
+  mutate(across(c(location_entrance:location_checkout_edge, q7p2a_whole_grain_cereals:q7p2a_infant_formula,
+          food_cat_chocolate_and_sugar_confectionery_energy_bars_sweet_topping_and_desserts:food_cat_sauces_dips_other_seasonings_and_dressings,
+          informas_cat_breads_rice_and_rice_products_without_added_fat_sugar_or_salt_noodles:informas_cat_baby_and_toddler_milk_formulae
+          ), ~ifelse(.x == 0, "No",
+                                 ifelse(.x > 0 , "Yes", .x))),
+         across(c(location_entrance:location_checkout_edge, q7p2a_whole_grain_cereals:q7p2a_infant_formula,
+          food_cat_chocolate_and_sugar_confectionery_energy_bars_sweet_topping_and_desserts:food_cat_sauces_dips_other_seasonings_and_dressings,
+          informas_cat_breads_rice_and_rice_products_without_added_fat_sugar_or_salt_noodles:informas_cat_baby_and_toddler_milk_formulae
+                  ), ~factor(.x, levels = c("Yes", "No"))))%>%
+  labelled::set_variable_labels(!!!supermarket_item_final_labels[names(supermarket_item_final_labels) %in% names(.)]) #labeling variables from data dictionary
+
+
+# Dummy code Food/Drink Brands advertised in outlet
+supermarket_item_final_set2 <- supermarket_item_final%>%
+  dplyr::select(key, q4p1)%>%
+  fastDummies::dummy_cols(select_columns = c("q4p1"),
+             ignore_na = TRUE, #ignores any NA values in the column
+             split = "; ",
+             remove_selected_columns = TRUE #removes the columns used to generate the dummy columns.
+             )%>%
+  janitor::clean_names()%>%
+  mutate(across(c(q4p1_4us:q4p1_zits), ~ifelse(.x == 0, "No",
+                                 ifelse(.x > 0 , "Yes", .x))),
+         across(c(q4p1_4us:q4p1_zits), ~factor(.x, levels = c("Yes", "No"))))%>%
+  labelled::set_variable_labels(!!!supermarket_item_final_labels[names(supermarket_item_final_labels) %in% names(.)]) #labeling variables from data dictionary
+
+
+```
+
+
+```{r final clean data, results="hide", include=FALSE}
+
+#Final clean data set
+
+supermarket_item_final_clean <- bind_cols(supermarket_item_final, supermarket_item_final_set1%>%dplyr::select(-key),
+                                           supermarket_item_final_set2%>%dplyr::select(-key))%>%
+  mutate(across(c( q5p1a:q5p1a_96, q5p2a:q5p2a_96, q7p3_1:q7p3_300, level_1:level_3, q4p2b1_1:q4p2b1_300), ~ifelse(.x == 0, "No",
+                                 ifelse(.x > 0 , "Yes", .x)) ),
+         across(c(q5p1a:q5p1a_96, q5p2a:q5p2a_96, q7p3_1:q7p3_300, level_1:level_3, q4p2b1_1:q4p2b1_300), ~ factor(.x, levels = c("Yes", "No"))),
+    across(c(q3p5a, q3p7, q3p8, q3p10, q5p1a:q5p1a_96, q5p2a:q5p2a_96, q4p2b1_1:q4p2b1_300
+             ), ~fct_na_value_to_level(.x, level = "No Advert at location")),
+    q7p5 = fct_na_value_to_level(q7p5, level = "Not with cooked/uncooked category") )%>%
+    mutate_if(is.factor, ~fct_drop(.x #, only = c("")
+            ))%>% #drop unused factor levels
+  labelled::set_variable_labels(!!!supermarket_item_labels[names(supermarket_item_labels) %in% names(.)])%>% #labeling variables from data dictionary
+  dplyr::select(county:id, location, location_entrance:location_checkout_edge, locationexists:q7p2a, q7p2a_whole_grain_cereals:q7p2a_infant_formula,
+                q7p2b, q7p3, q7p3_1:q7p3_300, q7p3b:depth, q4p1, q4p1_4us:q4p1_zits, q4p2a, q4p2b1, q4p2b1_1:q4p2b1_300, q4p2b2, q4p2c, food_cat,
+           food_cat_chocolate_and_sugar_confectionery_energy_bars_sweet_topping_and_desserts:food_cat_sauces_dips_other_seasonings_and_dressings,
+           food_cat1:food_cat5, InformasCat, 
+           informas_cat_breads_rice_and_rice_products_without_added_fat_sugar_or_salt_noodles:informas_cat_baby_and_toddler_milk_formulae,
+           InformasCat1:Prominence_Level) #Arranging columns
+
+```
+
+
+```{r saving locally supermarket final clean data, results="hide", include=FALSE}
+
+#saving final followup data
+write_csv(supermarket_item_final_clean, "UpdatedretailStoresData_clean_by_item.csv", na="")
+
+#saving as .Rdata
+save(supermarket_item, supermarket_item_final, supermarket_item_final_clean, file = "supermarket_item_final.RData")
+
+```  
+
+
+```{r supermarket final data for analysis, results="hide", include=FALSE}
+
+# make dataset with variables for descriptive and inferential statistics
+
+  supermarket_item_final_analysis <- supermarket_item_final_clean%>%
+  dplyr::select(
+    #Store characteristics
+    county, location_entrance:location_checkout_edge, Supermarket_Sizea, SESa, Prominence_Level, TotalAreaMSq,
+    #Adverts at store
+    advert, q3p5a, q3p7, q3p8, q3p10, q5p1a_0:q5p1a_96, q5p2a_1:q5p2a_96,
+    #Food/Drink Types and items sold in outlet
+    q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300,
+    #Types of foods sold in the outlet cooked, uncooked or both
+    q7p5,
+    #shelve number and level where food products are placed
+    shelves, level_1:level_3,
+    #Food/Drink Brands and items advertised in outlet
+    q4p1_4us:q4p1_zits, q4p2b1_1:q4p2b1_300,
+    #WHO AFRO Food category
+    food_cat_chocolate_and_sugar_confectionery_energy_bars_sweet_topping_and_desserts:food_cat_sauces_dips_other_seasonings_and_dressings,
+    #INFORMA Food category
+    food_cat5,
+    informas_cat_breads_rice_and_rice_products_without_added_fat_sugar_or_salt_noodles:informas_cat_baby_and_toddler_milk_formulae,
+    #Nova classification of foods
+    Nova_sales
+                )
+
+
+```
+
+
+```{r create supemarket ggplot theme}
+
+# Creating own ggplot theme to be reused
+
+supermarket_item_theme <-
+    ggplot2::theme_minimal() +
+    ggplot2::theme(
+      legend.position="none",
+  legend.text = element_text(size = 12),
+  legend.title = element_text(size = 15, color = "red", face = "bold")
+  ,axis.text.y = element_text(angle = 0, size = 14)
+  ,axis.text.x = element_text(angle = 0, size = 14),
+  #plot.title = element_text(vjust = 0.5, face = "bold", size = 16),
+  plot.caption = element_text(angle = 0, size = 12, face = "italic"),
+  axis.title.x = element_text(size = 16),
+  axis.title.y = element_text(size = 16),
+  #axis.line.y = element_line(colour = "black",inherit.blank = FALSE),
+  panel.grid.major.y = element_blank(),
+  panel.grid.major.x = element_line(color = "grey"),
+  panel.grid.minor.x = element_blank()
+      )
+
+```
+
+# **Introduction**
+
+This study aimed to assess frequency and level of exposure and the persuasive power and techniques used for adverts and its influence on dietary behaviours. 
+
+# **Data**
+
+Quantitative data collection using INFORMAS tools assessed in door advertising in food outlets/stores.
+
+Data collected included:
+
+* type of food (NOVA classification, WHO)
+* size of advertisement
+* type of advert Billboard, Poster
+* promotional content
+
+## Data description
+
+* The data has `r ncol(supermarket_item)` variables and `r nrow(supermarket_item)` observations.
+
+* Data was transformed to `r ncol(supermarket_item_final_clean)` variables and `r nrow(supermarket_item_final_clean)` observations.
+
+```{r data description}
+
+  tbl_summary(supermarket_item_final_clean%>%
+                dplyr::select(key,pilotoractual:consent)%>%
+                distinct(key, .keep_all = TRUE)%>%
+                dplyr::select(-key), 
+                      type = list(
+                        all_dichotomous() ~ "categorical")
+                      , digits = list(all_continuous() ~ 2, 
+                                      all_categorical() ~ c(0, 1))
+                      , missing = "no" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Consent**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  as_flex_table() #covert gtsummary object to knitrkable object. also use as_flex_table() to maintain identation, footnotes, spanning headers
+
+```
+
+## Data Dictionary
+
+Information about the attributes of supermarket data contains 6 columns namely:
+
+- **pos:** Column position of variable in data
+- **variable:** Study variable
+- **label:** Description of study variable
+- **col_type:** Data type. i.e dbl(numeric variable), fct(categorical variable), date(date variable), chr(character/string variable)
+- **levels:** variable levels/categories
+- **value_labels:** value of variable categories
+
+
+```{r data dictionary, results='asis'}
+
+kable(
+  supermarket_item_variable_attr%>%
+    mutate(value_labels = supermarket_item_variable_attr1$value_labels)
+  )
+
+```  
+
+## Data Analysis
+
+The quantitative data was cleaned and analysed using R version 4.2.3 (2023). 
+
+Descriptive summary statistics in form of frequency, percentage, mean and standard deviation were generated to examine all selected variables.
+
+Chi-square test and Fisher's exact test where appropriate were used for categorical data to analyze difference in proportion of all selected variables as a function of county and store size.
+
+For continous data, Wilcoxon rank sum test/Kruskal-Wallis rank sum test where appropriate was used to examine the comparison of county, store size and adverts at location(Yes/No) with continous variables.
+
+The results are presented in narrative and summary tables. Statistical significance was set at p<0.05
+
+  
+# **Descriptive statistics**
+
+## Summary Tables
+
+```{r final variables descriptives}
+
+ tbl_summary(supermarket_item_final_analysis, 
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                        ,all_continuous() ~ "continuous2"
+                        )
+                      , statistic = all_continuous() ~ c(
+                        "{mean} ({sd})",
+                        "{median} ({p25}, {p75})",
+                        "{min}, {max}")
+                      , digits = list(all_continuous() ~ 2, 
+                                      all_categorical() ~ c(0, 1))
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Variables**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  modify_footnote(
+    all_stat_cols() ~ "Mean (SD); Median (IQR); Range; Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to knitrkable object. also use as_flex_table() to maintain identation, footnotes, spanning headers
+
+```  
+
+
+## Plots
+
+```{r foods/drinks items sold, fig.width=10, fig.height=6}
+
+#Top 20 foods/drinks items sold
+
+supermarket_item_final_analysis%>%
+  dplyr::select(q7p3_1:q7p3_300)%>%
+  pivot_longer(cols = everything(),
+               names_to = "items",
+               values_to = "value")%>%
+  left_join(as.data.frame(labelled::generate_dictionary(supermarket_item_final_clean))%>%dplyr::select(variable, label), 
+            by = c("items" = "variable"))%>%
+  mutate(count = 1)%>%
+  filter(value=="Yes")%>%
+  group_by(items, label, value)%>%
+  summarise(count = sum(count), .groups = 'drop')%>%
+  mutate(p = round((count/nrow(supermarket_item_final_analysis))*100,1))%>%
+  arrange(-count)%>%
+  slice_max(count, n=20, with_ties=FALSE)%>% #Top 20 by count
+  mutate(label = fct_rev(as_factor(label)))%>%
+  ggplot(aes(fill=value, y = count, x=label))+
+  geom_bar(position = "dodge", stat = "identity", width=0.8)+
+  geom_text(aes(label= paste0(count," (", p,"%)" )), vjust=0.4, hjust=-0.1,
+            position = position_dodge(0.9), color="black", size=4.5)+
+  #scale_y_continuous(n.breaks = 5)+
+  scale_y_continuous(breaks = seq(0, 250, by = 50), limits = c(0, 275))+
+  supermarket_item_theme+
+  geom_hline(yintercept = 0, color = "black")+
+  labs(x= "food/drink items sold", y="No. of items", fill="", caption = "N=3669")+
+  coord_flip()+
+  guides(fill= guide_legend(reverse = TRUE))
+
+```
+
+
+```{r foods/drinks items advertised, fig.width=10, fig.height=6}
+
+#Top 20 foods/drinks items advertised
+
+supermarket_item_final_analysis%>%
+  dplyr::select(q4p2b1_1:q4p2b1_300)%>%
+  pivot_longer(cols = everything(),
+               names_to = "items",
+               values_to = "value")%>%
+  left_join(as.data.frame(labelled::generate_dictionary(supermarket_item_final_clean))%>%dplyr::select(variable, label), 
+            by = c("items" = "variable"))%>%
+  mutate(count = 1)%>%
+  filter(value=="Yes")%>%
+  group_by(items, label, value)%>%
+  summarise(count = sum(count), .groups = 'drop')%>%
+  mutate(p = round((count/nrow(supermarket_item_final_analysis))*100,1))%>%
+  arrange(-count)%>%
+  slice_max(count, n=20, with_ties=FALSE)%>% #Top 20 by count
+  mutate(label = fct_rev(as_factor(label)))%>%
+  ggplot(aes(fill=value, y = count, x=label))+
+  geom_bar(position = "dodge", stat = "identity", width=0.8)+
+  geom_text(aes(label= paste0(count," (", p,"%)" )), vjust=0.4, hjust=-0.1,
+            position = position_dodge(0.9), color="black", size=4.5)+
+  #scale_y_continuous(n.breaks = 5)+
+  scale_y_continuous(breaks = seq(0, 250, by = 50), limits = c(0, 260))+
+  supermarket_item_theme+
+  geom_hline(yintercept = 0, color = "black")+
+  labs(x= "food/drink items advertised", y="No. of items", fill="", caption = "N=3669")+
+  coord_flip()+
+  guides(fill= guide_legend(reverse = TRUE))
+
+```
+
+
+```{r brands advertised, fig.width=10, fig.height=6}
+
+#Top 20 Food/drink brand name advertised
+
+ supermarket_item_final_analysis%>%
+  dplyr::select(q4p1_4us:q4p1_zits)%>%
+  pivot_longer(cols = everything(),
+               names_to = "items",
+               values_to = "value")%>%
+  left_join(as.data.frame(labelled::generate_dictionary(supermarket_item_final_clean))%>%dplyr::select(variable, label), 
+            by = c("items" = "variable"))%>%
+  mutate(label = gsub("Food/drink brand name advertised - ", "", label),
+         count = 1)%>%
+  filter(value=="Yes")%>%
+  group_by(items, label, value)%>%
+  summarise(count = sum(count), .groups = 'drop')%>%
+  mutate(p = round((count/nrow(supermarket_item_final_analysis))*100,1))%>%
+  arrange(-count)%>%
+  slice_max(count, n=20, with_ties=FALSE)%>% #Top 20 by count
+  mutate(label = fct_rev(as_factor(label)))%>%
+  ggplot(aes(fill=value, y = count, x=label))+
+  geom_bar(position = "dodge", stat = "identity", width=0.8)+
+  geom_text(aes(label= paste0(count," (", p,"%)" )), vjust=0.4, hjust=-0.1,
+            position = position_dodge(0.9), color="black", size=4.5)+
+  #scale_y_continuous(n.breaks = 5)+
+  scale_y_continuous(breaks = seq(0, 250, by = 50), limits = c(0, 250))+
+  supermarket_item_theme+
+  geom_hline(yintercept = 0, color = "black")+
+  labs(x= "Food/drink brand name advertised", y="No. of items", fill="", caption = "N=3669")+
+  coord_flip()+
+  guides(fill= guide_legend(reverse = TRUE))
+
+```
+
+
+# **Inferential statistics**
+
+## County
+
+```{r final variables by county}
+
+  tbl_summary(supermarket_item_final_analysis%>%dplyr::select(-c(q7p3_1:q7p3_300, q4p2b1_1:q4p2b1_300)),
+              by = county,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                         ,all_continuous() ~ "continuous2"
+                        )
+                      , statistic = all_continuous() ~ c(
+                                      "{mean} ({sd})", 
+                                      "{median} ({p25}, {p75})", 
+                                      "{min}, {max}")
+                       , digits = list(all_continuous() ~ 2, 
+                                      all_categorical() ~ c(0, 1))
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Variables**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3),
+        test.args = all_tests("fisher.test") ~ list(simulate.p.value=TRUE)) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  #add_overall() %>%
+  #add_difference() %>% #add column for difference between two group, confidence interval, and p-value
+  modify_spanning_header(c("stat_1", "stat_2", "stat_3") ~ "**County**")%>%
+  #modify_caption("**Table 1. Patient Characteristics**")%>%
+  modify_footnote(
+    all_stat_cols() ~ "Mean (SD); Median (IQR); Range; Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object. 
+
+```
+
+
+## Supermarket Size
+
+```{r final variables by Supermarket Size}
+
+  tbl_summary(supermarket_item_final_analysis%>%dplyr::select(-c(q7p3_1:q7p3_300, q4p2b1_1:q4p2b1_300)),
+              by = Supermarket_Sizea,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                         ,all_continuous() ~ "continuous2"
+                        )
+                      , statistic = all_continuous() ~ c(
+                                      "{mean} ({sd})", 
+                                      "{median} ({p25}, {p75})", 
+                                      "{min}, {max}")
+                       , digits = list(all_continuous() ~ 2, 
+                                      all_categorical() ~ c(0, 1))
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Variables**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3),
+        test.args = all_tests("fisher.test") ~ list(simulate.p.value=TRUE)) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  #add_overall() %>%
+  #add_difference() %>% #add column for difference between two group, confidence interval, and p-value
+  modify_spanning_header(c("stat_1", "stat_2", "stat_3") ~ "**Store Size**")%>%
+  #modify_caption("**Table 1. Patient Characteristics**")%>%
+  modify_footnote(
+    all_stat_cols() ~ "Mean (SD); Median (IQR); Range; Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object. 
+
+```
+
+
+## Adverts at location
+
+```{r final variables by Adverts at location}
+
+  tbl_summary(supermarket_item_final_analysis%>%dplyr::select(-c(q7p3_1:q7p3_300, q4p2b1_1:q4p2b1_300)),
+              by = advert,
+                      type = list(
+                        all_dichotomous() ~ "categorical"
+                         ,all_continuous() ~ "continuous2"
+                        )
+                      , statistic = all_continuous() ~ c(
+                                      "{mean} ({sd})", 
+                                      "{median} ({p25}, {p75})", 
+                                      "{min}, {max}")
+                       , digits = list(all_continuous() ~ 2, 
+                                      all_categorical() ~ c(0, 1))
+                      ,percent = "column" #"column", "row", or "cell"
+                      , missing = "always" #list missing data separately #ifany #no #always
+                      ,missing_text = "Missing"
+                      ) %>% 
+  modify_header(label = "**Variables**") %>% # update the column header
+  bold_labels() %>%
+  italicize_levels()%>%
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3),
+        test.args = all_tests("fisher.test") ~ list(simulate.p.value=TRUE)) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  #add_overall() %>%
+  #add_difference() %>% #add column for difference between two group, confidence interval, and p-value
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Do we have adverts at location**")%>%
+  #modify_caption("**Table 1. Patient Characteristics**")%>%
+  modify_footnote(
+    all_stat_cols() ~ "Mean (SD); Median (IQR); Range; Frequency (%)"
+  )%>%
+  as_flex_table() #covert gtsummary object to flex table object. 
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
