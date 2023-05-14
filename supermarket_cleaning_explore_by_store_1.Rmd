@@ -588,9 +588,11 @@ supermarket_store_final_clean <- purrr::reduce(list(supermarket_store_final_set1
                                               supermarket_store_final_set3, supermarket_store_final_set4),
                                          dplyr::left_join, by = 'key')%>%
   mutate(
-    across(c(q5p1a:q5p2a_96, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300), ~as.character(.x)),
-         across(c(q5p1a:q5p2a_96, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300), ~ifelse(advert_yes == "No", "No Advert at location", .x)),
-         across(c(q5p1a:q5p2a_96, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300), ~factor(.x, levels = c("Yes", "No", "No Advert at location" ))))%>%
+    across(c(q3p5a_small_a4_but_1_3m_x_1_9m:q3p10_combined, q5p1a:q5p2a_96, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300), ~as.character(.x)),
+         across(c(q3p5a_small_a4_but_1_3m_x_1_9m:q3p10_combined, q5p1a:q5p2a_96, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300
+                  ), ~ifelse(advert_yes == "No", "No Advert at location", .x)),
+         across(c(q3p5a_small_a4_but_1_3m_x_1_9m:q3p10_combined, q5p1a:q5p2a_96, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300
+                  ), ~factor(.x, levels = c("Yes", "No", "No Advert at location" ))))%>%
   mutate_if(is.factor, ~fct_drop(.x #, only = c("")
             ))%>%
   labelled::set_variable_labels(!!!supermarket_store_final_set2_3_4_labels[names(supermarket_store_final_set2_3_4_labels) %in% names(.)])%>% #labeling variables from data dictionary
