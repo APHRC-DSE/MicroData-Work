@@ -978,7 +978,7 @@ supermarket_store_final_analysis%>%
                                       "{min}, {max}")
                        , digits = list(all_continuous() ~ 2, 
                                       all_categorical() ~ c(0, 1))
-                      ,percent = "row" #"column", "row", or "cell"
+                      ,percent = "column" #"column", "row", or "cell"
                       , missing = "always" #list missing data separately #ifany #no #always
                       ,missing_text = "Missing"
                       ) %>% 
