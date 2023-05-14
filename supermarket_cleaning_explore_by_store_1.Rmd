@@ -270,16 +270,19 @@ supermarket_store_final_set2 <- supermarket_store_final%>%
   janitor::clean_names()%>%
   dplyr::select(-c(advert_no))%>%
   group_by(key,locationexists, food)%>%
-  summarise(across(c(location_entrance:advert_yes, q5p1a:q5p2a_96, q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300,
-                     q7p5_cooked:q7p5_both, q7p5_not_in_cooked_uncooked_category, shelves_shelf1_5:shelves_shelf_15ormore,
+  summarise(across(c(location_entrance:advert_yes, q3p5a_small_a4_but_1_3m_x_1_9m:q3p10_combined, q5p1a:q5p2a_96,
+                     q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300, q7p5_cooked:q7p5_both, 
+                     q7p5_not_in_cooked_uncooked_category, shelves_shelf1_5:shelves_shelf_15ormore,
                      level_1:level_3), ~ sum(.x, na.rm = TRUE)), .groups = "drop")%>%
-  mutate(across(c(location_entrance:advert_yes, q5p1a:q5p2a_96, q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300,
-                  q7p5_cooked:q7p5_both, q7p5_not_in_cooked_uncooked_category, shelves_shelf1_5:shelves_shelf_15ormore,
-                  level_1:level_3), ~ifelse(.x == 0, "No",
+  mutate(across(c(location_entrance:advert_yes, q3p5a_small_a4_but_1_3m_x_1_9m:q3p10_combined, q5p1a:q5p2a_96,
+                     q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300, q7p5_cooked:q7p5_both, 
+                     q7p5_not_in_cooked_uncooked_category, shelves_shelf1_5:shelves_shelf_15ormore,
+                     level_1:level_3), ~ifelse(.x == 0, "No",
                                  ifelse(.x > 0 , "Yes", .x))),
-         across(c(location_entrance:advert_yes, q5p1a:q5p2a_96, q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300,
-                  q7p5_cooked:q7p5_both, q7p5_not_in_cooked_uncooked_category, shelves_shelf1_5:shelves_shelf_15ormore, 
-                  level_1:level_3), ~factor(.x, levels = c("Yes", "No"))))%>%
+         across(c(location_entrance:advert_yes, q3p5a_small_a4_but_1_3m_x_1_9m:q3p10_combined, q5p1a:q5p2a_96,
+                     q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300, q7p5_cooked:q7p5_both, 
+                     q7p5_not_in_cooked_uncooked_category, shelves_shelf1_5:shelves_shelf_15ormore,
+                     level_1:level_3), ~factor(.x, levels = c("Yes", "No"))))%>%
   labelled::set_variable_labels( #labeling new variables
     location_entrance = "Location - Entrance (Area within 3m in front of the store entrance (or security barrier))",
     location_endcap_a = "Location - Endcap A (Endcaps (also known as the end of aisles) that face the front of the s",
@@ -591,7 +594,7 @@ supermarket_store_final_clean <- purrr::reduce(list(supermarket_store_final_set1
   mutate_if(is.factor, ~fct_drop(.x #, only = c("")
             ))%>%
   labelled::set_variable_labels(!!!supermarket_store_final_set2_3_4_labels[names(supermarket_store_final_set2_3_4_labels) %in% names(.)])%>% #labeling variables from data dictionary
-  dplyr::select(county:id, locationexists, food, location_entrance:advert_yes, q5p1a:q5p2a_96,
+  dplyr::select(county:id, locationexists, food, location_entrance:advert_yes, q3p5a_small_a4_but_1_3m_x_1_9m:q3p10_combined, q5p1a:q5p2a_96,
                 q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300, q7p5_cooked:q7p5_both, q7p5_not_in_cooked_uncooked_category,
                 shelves_shelf1_5:shelves_shelf_15ormore, level_1:level_3, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300, 
             food_cat_chocolate_and_sugar_confectionery_energy_bars_sweet_topping_and_desserts:food_cat_sauces_dips_other_seasonings_and_dressings,
@@ -623,7 +626,7 @@ save(supermarket_store, supermarket_store_final, supermarket_store_final_clean, 
     county, checkouts, Store_Surfacearea11, location_entrance:location_checkout_edge, locationexists, food, 
     Supermarket_Sizea, SESa, prominence_level_low_prominence:prominence_level_high_prominence, TotalAreaMSq,
     #Adverts at store
-    advert_yes, q5p1a_0:q5p1a_12, q5p2a_1:q5p2a_96,
+    advert_yes, q3p5a_small_a4_but_1_3m_x_1_9m:q3p10_combined, q5p1a_0:q5p1a_12, q5p2a_1:q5p2a_96,
     #Food/Drink Types and items sold in outlet
     q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300,
     #Types of foods sold in the outlet cooked, uncooked or both
