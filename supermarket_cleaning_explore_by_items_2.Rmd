@@ -482,7 +482,7 @@ supermarket_item_final_analysis%>%
   scale_y_continuous(breaks = seq(0, 250, by = 50), limits = c(0, 260))+
   supermarket_item_theme+
   geom_hline(yintercept = 0, color = "black")+
-  labs(x= "Food/drink items", y="No. of adverts", fill="", caption = "N=3657; 12 Missing")+
+  labs(x= "Food/drink items", y="No. advertised", fill="", caption = "N=3657; 12 Missing")+
   coord_flip()+
   guides(fill= guide_legend(reverse = TRUE))
 
@@ -517,7 +517,7 @@ supermarket_item_final_analysis%>%
   scale_y_continuous(breaks = seq(0, 250, by = 50), limits = c(0, 250))+
   supermarket_item_theme+
   geom_hline(yintercept = 0, color = "black")+
-  labs(x= "Food/drink brand name", y="No. of adverts", fill="", caption = "N=3657; 12 Missing")+
+  labs(x= "Food/drink brand name", y="No. advertised", fill="", caption = "N=3657; 12 Missing")+
   coord_flip()+
   guides(fill= guide_legend(reverse = TRUE))
 
