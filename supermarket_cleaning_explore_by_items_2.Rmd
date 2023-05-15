@@ -229,9 +229,11 @@ supermarket_item_final_clean <- bind_cols(supermarket_item_final, supermarket_it
   mutate(across(c( q5p1a:q5p1a_96, q5p2a:q5p2a_96, q7p3_1:q7p3_300, level_1:level_3, q4p2b1_1:q4p2b1_300), ~ifelse(.x == 0, "No",
                                  ifelse(.x > 0 , "Yes", .x)) ),
          across(c(q5p1a:q5p1a_96, q5p2a:q5p2a_96, q7p3_1:q7p3_300, level_1:level_3, q4p2b1_1:q4p2b1_300), ~ factor(.x, levels = c("Yes", "No"))),
-    across(c(q3p5a, q3p7, q3p8, q3p10, q5p1a:q5p1a_96, q5p2a:q5p2a_96, q4p2b1_1:q4p2b1_300
-             ), ~fct_na_value_to_level(.x, level = "No Advert at location")),
-    q7p5 = fct_na_value_to_level(q7p5, level = "Not with cooked/uncooked category") )%>%
+         q7p5 = fct_na_value_to_level(q7p5, level = "Not with cooked/uncooked category"),
+         across(c(q3p5a, q3p7, q3p8, q3p10), ~fct_na_value_to_level(.x, level = "No Advert at location")  ),
+    across(c(q5p1a:q5p1a_96, q5p2a:q5p2a_96, q4p2b1_1:q4p2b1_300), ~as.character(.x)),
+         across(c(q5p1a:q5p1a_96, q5p2a:q5p2a_96, q4p2b1_1:q4p2b1_300), ~ifelse(advert == "No", "No Advert at location", .x)),
+         across(c(q5p1a:q5p1a_96, q5p2a:q5p2a_96, q4p2b1_1:q4p2b1_300), ~factor(.x, levels = c("Yes", "No", "No Advert at location" ))) )%>%
     mutate_if(is.factor, ~fct_drop(.x #, only = c("")
             ))%>% #drop unused factor levels
   labelled::set_variable_labels(!!!supermarket_item_labels[names(supermarket_item_labels) %in% names(.)])%>% #labeling variables from data dictionary
