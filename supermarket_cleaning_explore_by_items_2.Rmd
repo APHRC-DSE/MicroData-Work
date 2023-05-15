@@ -236,6 +236,7 @@ supermarket_item_final_clean <- bind_cols(supermarket_item_final, supermarket_it
     mutate_if(is.factor, ~fct_drop(.x #, only = c("")
             ))%>% #drop unused factor levels
   labelled::set_variable_labels(!!!supermarket_item_labels[names(supermarket_item_labels) %in% names(.)])%>% #labeling variables from data dictionary
+  labelled::set_variable_labels(!!!supermarket_item_final_labels[names(supermarket_item_final_labels) %in% names(.)])%>% #labeling variables from data dictionary
   dplyr::select(county:id, location, location_entrance:location_checkout_edge, locationexists:q7p2a, q7p2a_whole_grain_cereals:q7p2a_infant_formula,
                 q7p2b, q7p3, q7p3_1:q7p3_300, q7p3b:depth, q4p1, q4p1_4us:q4p1_zits, q4p2a, q4p2b1, q4p2b1_1:q4p2b1_300, q4p2b2, q4p2c, food_cat,
            food_cat_chocolate_and_sugar_confectionery_energy_bars_sweet_topping_and_desserts:food_cat_sauces_dips_other_seasonings_and_dressings,
