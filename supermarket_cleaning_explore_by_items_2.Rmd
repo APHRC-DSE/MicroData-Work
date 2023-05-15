@@ -86,7 +86,6 @@ supermarket_item_final_labels <- as.data.frame(labelled::generate_dictionary(sup
   select(variable, label)%>%
   deframe()
 
-
 ```
 
 
@@ -164,9 +163,10 @@ supermarket_item_final_labels <- as.data.frame(labelled::generate_dictionary(sup
                 ifelse(str_detect(q4p1, "Dairymilk") | str_detect(q4p1, "Cadbury"), "Cadbury",
                 ifelse(str_detect(q4p1, "Daima"), "Daima",
                 ifelse(str_detect(q4p1, "Brookside"), "Brookside",
-                ifelse(str_detect(q4p1, "Ajab"), "Ajab", q4p1)))))))))))))))))))))))))))))))))))))%>%
+                ifelse(str_detect(q4p1, "Ajab"), "Ajab", q4p1)))))))))))))))))))))))))))))))))))),
+         q4p1 = na_if(q4p1, "") )%>%
   labelled::set_variable_labels(!!!supermarket_item_labels[names(supermarket_item_labels) %in% names(.)]) #labeling variables from data dictionary
-   
+
 ```
 
 
@@ -216,7 +216,6 @@ supermarket_item_final_set2 <- supermarket_item_final%>%
          across(c(q4p1_4us:q4p1_zits), ~factor(.x, levels = c("Yes", "No"))))%>%
   labelled::set_variable_labels(!!!supermarket_item_final_labels[names(supermarket_item_final_labels) %in% names(.)]) #labeling variables from data dictionary
 
-
 ```
 
 
@@ -231,9 +230,9 @@ supermarket_item_final_clean <- bind_cols(supermarket_item_final, supermarket_it
          across(c(q5p1a:q5p1a_96, q5p2a:q5p2a_96, q7p3_1:q7p3_300, level_1:level_3, q4p2b1_1:q4p2b1_300), ~ factor(.x, levels = c("Yes", "No"))),
          q7p5 = fct_na_value_to_level(q7p5, level = "Not with cooked/uncooked category"),
          across(c(q3p5a, q3p7, q3p8, q3p10), ~fct_na_value_to_level(.x, level = "No Advert at location")  ),
-    across(c(q5p1a:q5p1a_96, q5p2a:q5p2a_96, q4p2b1_1:q4p2b1_300), ~as.character(.x)),
-         across(c(q5p1a:q5p1a_96, q5p2a:q5p2a_96, q4p2b1_1:q4p2b1_300), ~ifelse(advert == "No", "No Advert at location", .x)),
-         across(c(q5p1a:q5p1a_96, q5p2a:q5p2a_96, q4p2b1_1:q4p2b1_300), ~factor(.x, levels = c("Yes", "No", "No Advert at location" ))) )%>%
+    across(c(q5p1a:q5p1a_96, q5p2a:q5p2a_96, q4p1_4us:q4p1_zits, q4p2b1_1:q4p2b1_300), ~as.character(.x)),
+         across(c(q5p1a:q5p1a_96, q5p2a:q5p2a_96, q4p1_4us:q4p1_zits, q4p2b1_1:q4p2b1_300), ~ifelse(advert == "No", "No Advert at location", .x)),
+         across(c(q5p1a:q5p1a_96, q5p2a:q5p2a_96, q4p1_4us:q4p1_zits, q4p2b1_1:q4p2b1_300), ~factor(.x, levels = c("Yes", "No", "No Advert at location" ))) )%>%
     mutate_if(is.factor, ~fct_drop(.x #, only = c("")
             ))%>% #drop unused factor levels
   labelled::set_variable_labels(!!!supermarket_item_labels[names(supermarket_item_labels) %in% names(.)])%>% #labeling variables from data dictionary
@@ -284,7 +283,6 @@ save(supermarket_item, supermarket_item_final, supermarket_item_final_clean, fil
     #Nova classification of foods
     Nova_sales
                 )
-
 
 ```
 

@@ -228,7 +228,8 @@ supermarket_store_labels <- supermarket_store_variable_attr%>%
                 ifelse(str_detect(q4p1, "Dairymilk") | str_detect(q4p1, "Cadbury"), "Cadbury",
                 ifelse(str_detect(q4p1, "Daima"), "Daima",
                 ifelse(str_detect(q4p1, "Brookside"), "Brookside",
-                ifelse(str_detect(q4p1, "Ajab"), "Ajab", q4p1)))))))))))))))))))))))))))))))))))))%>%
+                ifelse(str_detect(q4p1, "Ajab"), "Ajab", q4p1)))))))))))))))))))))))))))))))))))),
+         q4p1 = na_if(q4p1, "") )%>%
   labelled::set_variable_labels(!!!supermarket_store_labels[names(supermarket_store_labels) %in% names(.)]) #labeling variables from data dictionary
    
 ```
@@ -360,7 +361,6 @@ supermarket_store_final_set2 <- supermarket_store_final%>%
 # data to wide format - Food/Drink Brands advertised in outlet
 supermarket_store_final_set3 <- supermarket_store_final%>%
   dplyr::select(key, q4p1)%>%
-  mutate(q4p1 = na_if(q4p1, ""))%>%
   pivot_wider(names_from = q4p1, values_from = q4p1, values_fn = ~1, values_fill = 0, 
               names_expand = TRUE, #Forces implicit(unused) factor levels to explicit. be represented in result
               names_prefix = "q4p1_")%>%
@@ -584,21 +584,24 @@ supermarket_store_final_set2_3_4_labels <- as.data.frame(labelled::generate_dict
   select(variable, label)%>%
   deframe()
 
+#Final clean data set
 supermarket_store_final_clean <- purrr::reduce(list(supermarket_store_final_set1, supermarket_store_final_set2,
                                               supermarket_store_final_set3, supermarket_store_final_set4),
                                          dplyr::left_join, by = 'key')%>%
   mutate(
-    across(c(q3p5a_small_a4_but_1_3m_x_1_9m:q3p10_combined, q5p1a:q5p2a_96, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300), ~as.character(.x)),
-         across(c(q3p5a_small_a4_but_1_3m_x_1_9m:q3p10_combined, q5p1a:q5p2a_96, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300
+    across(c(q3p5a_small_a4_but_1_3m_x_1_9m:q3p10_combined, q5p1a:q5p1a_96, q5p2a:q5p2a_96, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300
+             ), ~as.character(.x)),
+         across(c(q3p5a_small_a4_but_1_3m_x_1_9m:q3p10_combined, q5p1a:q5p1a_96, q5p2a:q5p2a_96, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300
                   ), ~ifelse(advert_yes == "No", "No Advert at location", .x)),
-         across(c(q3p5a_small_a4_but_1_3m_x_1_9m:q3p10_combined, q5p1a:q5p2a_96, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300
+         across(c(q3p5a_small_a4_but_1_3m_x_1_9m:q3p10_combined, q5p1a:q5p1a_96, q5p2a:q5p2a_96, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300
                   ), ~factor(.x, levels = c("Yes", "No", "No Advert at location" ))))%>%
   mutate_if(is.factor, ~fct_drop(.x #, only = c("")
-            ))%>%
+            ))%>% #drop unused factor levels
   labelled::set_variable_labels(!!!supermarket_store_final_set2_3_4_labels[names(supermarket_store_final_set2_3_4_labels) %in% names(.)])%>% #labeling variables from data dictionary
-  dplyr::select(county:id, locationexists, food, location_entrance:advert_yes, q3p5a_small_a4_but_1_3m_x_1_9m:q3p10_combined, q5p1a:q5p2a_96,
-                q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300, q7p5_cooked:q7p5_both, q7p5_not_with_cooked_uncooked_category,
-                shelves_shelf1_5:shelves_shelf_15ormore, level_1:level_3, q4p1_4us:q4p1_asis, q4p2b1_1:q4p2b1_300, 
+  dplyr::select(county:id, locationexists, food, location_entrance:advert_yes, q3p5a_small_a4_but_1_3m_x_1_9m:q3p10_combined, q5p1a:q5p1a_96,
+                q5p2a:q5p2a_96,q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300, q7p5_cooked:q7p5_both,
+                q7p5_not_with_cooked_uncooked_category, shelves_shelf1_5:shelves_shelf_15ormore, level_1:level_3, q4p1_4us:q4p1_asis,
+                q4p2b1_1:q4p2b1_300, 
             food_cat_chocolate_and_sugar_confectionery_energy_bars_sweet_topping_and_desserts:food_cat_sauces_dips_other_seasonings_and_dressings,
             Storelengthaa:TotalAreaMSq, food_cat5_healthy:food_cat5_unhealthy, 
             informas_cat_breads_rice_and_rice_products_without_added_fat_sugar_or_salt_noodles:informas_cat_baby_and_toddler_milk_formulae,
