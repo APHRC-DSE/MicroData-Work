@@ -470,7 +470,7 @@ supermarket_item_final_analysis%>%
   filter(value=="Yes")%>%
   group_by(items, label, value)%>%
   summarise(count = sum(count), .groups = 'drop')%>%
-  mutate(p = round((count/nrow(supermarket_item_final_analysis))*100,1))%>%
+  mutate(p = round((count/nrow(supermarket_item_final_analysis[!is.na(supermarket_item_final_analysis$q4p2b1_1)]))*100,1))%>%
   arrange(-count)%>%
   slice_max(count, n=20, with_ties=FALSE)%>% #Top 20 by count
   mutate(label = fct_rev(as_factor(label)))%>%
@@ -482,7 +482,7 @@ supermarket_item_final_analysis%>%
   scale_y_continuous(breaks = seq(0, 250, by = 50), limits = c(0, 260))+
   supermarket_item_theme+
   geom_hline(yintercept = 0, color = "black")+
-  labs(x= "Food/drink items", y="No. of adverts", fill="", caption = "N=3669")+
+  labs(x= "Food/drink items", y="No. of adverts", fill="", caption = "N=3657; 12 Missing")+
   coord_flip()+
   guides(fill= guide_legend(reverse = TRUE))
 
@@ -505,7 +505,7 @@ supermarket_item_final_analysis%>%
   filter(value=="Yes")%>%
   group_by(items, label, value)%>%
   summarise(count = sum(count), .groups = 'drop')%>%
-  mutate(p = round((count/nrow(supermarket_item_final_analysis))*100,1))%>%
+  mutate(p = round((count/nrow(supermarket_item_final_analysis[!is.na(supermarket_item_final_analysis$q4p1_4us)]))*100,1))%>%
   arrange(-count)%>%
   slice_max(count, n=20, with_ties=FALSE)%>% #Top 20 by count
   mutate(label = fct_rev(as_factor(label)))%>%
@@ -517,7 +517,7 @@ supermarket_item_final_analysis%>%
   scale_y_continuous(breaks = seq(0, 250, by = 50), limits = c(0, 250))+
   supermarket_item_theme+
   geom_hline(yintercept = 0, color = "black")+
-  labs(x= "Food/drink brand name", y="No. of adverts", fill="", caption = "N=3669")+
+  labs(x= "Food/drink brand name", y="No. of adverts", fill="", caption = "N=3657; 12 Missing")+
   coord_flip()+
   guides(fill= guide_legend(reverse = TRUE))
 
