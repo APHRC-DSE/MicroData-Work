@@ -174,7 +174,7 @@ supermarket_item_final_labels <- as.data.frame(labelled::generate_dictionary(sup
 
 # Dummy code location
 supermarket_item_final_set1 <- supermarket_item_final%>%
-  dplyr::select(key, location, q7p2a, food_cat, InformasCat)%>%
+  dplyr::select(key, location, q7p2a, q4p2a, food_cat, InformasCat)%>%
   mutate(location = fct_recode(location,
                           "Entrance" = "Entrance (Area within 3m in front of the store entrance (or security barrier))",
                           "Endcap A" = "Endcap A (Endcaps (also known as the end of aisles) that face the front of the s",
@@ -185,17 +185,19 @@ supermarket_item_final_set1 <- supermarket_item_final%>%
                           "Checkout side" = "Checkout side (The area alongside and just in front of the checkout – often look",
                           "Checkout edge" = "Checkout edge (The endcap of the checkout which faces the rest of the store.)" )
          )%>%
-  fastDummies::dummy_cols(select_columns = c("location", "q7p2a", "food_cat", "InformasCat"),
+  fastDummies::dummy_cols(select_columns = c("location", "q7p2a", "q4p2a", "food_cat", "InformasCat"),
              ignore_na = TRUE, #ignores any NA values in the column
              remove_selected_columns = TRUE #removes the columns used to generate the dummy columns.
              )%>%
   janitor::clean_names()%>%
   mutate(across(c(location_entrance:location_checkout_edge, q7p2a_whole_grain_cereals:q7p2a_infant_formula,
+                  q4p2a_whole_grain_cereals:q4p2a_infant_formula,
           food_cat_chocolate_and_sugar_confectionery_energy_bars_sweet_topping_and_desserts:food_cat_sauces_dips_other_seasonings_and_dressings,
           informas_cat_breads_rice_and_rice_products_without_added_fat_sugar_or_salt_noodles:informas_cat_baby_and_toddler_milk_formulae
           ), ~ifelse(.x == 0, "No",
                                  ifelse(.x > 0 , "Yes", .x))),
          across(c(location_entrance:location_checkout_edge, q7p2a_whole_grain_cereals:q7p2a_infant_formula,
+                  q4p2a_whole_grain_cereals:q4p2a_infant_formula,
           food_cat_chocolate_and_sugar_confectionery_energy_bars_sweet_topping_and_desserts:food_cat_sauces_dips_other_seasonings_and_dressings,
           informas_cat_breads_rice_and_rice_products_without_added_fat_sugar_or_salt_noodles:informas_cat_baby_and_toddler_milk_formulae
                   ), ~factor(.x, levels = c("Yes", "No"))))%>%
@@ -230,15 +232,19 @@ supermarket_item_final_clean <- bind_cols(supermarket_item_final, supermarket_it
          across(c(q5p1a:q5p1a_96, q5p2a:q5p2a_96, q7p3_1:q7p3_300, level_1:level_3, q4p2b1_1:q4p2b1_300), ~ factor(.x, levels = c("Yes", "No"))),
          q7p5 = fct_na_value_to_level(q7p5, level = "Not with cooked/uncooked category"),
          across(c(q3p5a, q3p7, q3p8, q3p10), ~fct_na_value_to_level(.x, level = "No Advert at location")  ),
-    across(c(q5p1a:q5p1a_96, q5p2a:q5p2a_96, q4p1_4us:q4p1_zits, q4p2b1_1:q4p2b1_300), ~as.character(.x)),
-         across(c(q5p1a:q5p1a_96, q5p2a:q5p2a_96, q4p1_4us:q4p1_zits, q4p2b1_1:q4p2b1_300), ~ifelse(advert == "No", "No Advert at location", .x)),
-         across(c(q5p1a:q5p1a_96, q5p2a:q5p2a_96, q4p1_4us:q4p1_zits, q4p2b1_1:q4p2b1_300), ~factor(.x, levels = c("Yes", "No", "No Advert at location" ))) )%>%
+    across(c(q5p1a:q5p1a_96, q5p2a:q5p2a_96, q4p1_4us:q4p1_zits, q4p2a_whole_grain_cereals:q4p2a_infant_formula, q4p2b1_1:q4p2b1_300
+             ), ~as.character(.x)),
+         across(c(q5p1a:q5p1a_96, q5p2a:q5p2a_96, q4p1_4us:q4p1_zits, q4p2a_whole_grain_cereals:q4p2a_infant_formula, q4p2b1_1:q4p2b1_300
+                  ), ~ifelse(advert == "No", "No Advert at location", .x)),
+         across(c(q5p1a:q5p1a_96, q5p2a:q5p2a_96, q4p1_4us:q4p1_zits, q4p2a_whole_grain_cereals:q4p2a_infant_formula, q4p2b1_1:q4p2b1_300
+                  ), ~factor(.x, levels = c("Yes", "No", "No Advert at location" ))) )%>%
     mutate_if(is.factor, ~fct_drop(.x #, only = c("")
             ))%>% #drop unused factor levels
   labelled::set_variable_labels(!!!supermarket_item_labels[names(supermarket_item_labels) %in% names(.)])%>% #labeling variables from data dictionary
   labelled::set_variable_labels(!!!supermarket_item_final_labels[names(supermarket_item_final_labels) %in% names(.)])%>% #labeling variables from data dictionary
   dplyr::select(county:id, location, location_entrance:location_checkout_edge, locationexists:q7p2a, q7p2a_whole_grain_cereals:q7p2a_infant_formula,
-                q7p2b, q7p3, q7p3_1:q7p3_300, q7p3b:depth, q4p1, q4p1_4us:q4p1_zits, q4p2a, q4p2b1, q4p2b1_1:q4p2b1_300, q4p2b2, q4p2c, food_cat,
+                q7p2b, q7p3, q7p3_1:q7p3_300, q7p3b:depth, q4p1, q4p1_4us:q4p1_zits, q4p2a, q4p2a_whole_grain_cereals:q4p2a_infant_formula, q4p2b1,
+                q4p2b1_1:q4p2b1_300, q4p2b2, q4p2c, food_cat,
            food_cat_chocolate_and_sugar_confectionery_energy_bars_sweet_topping_and_desserts:food_cat_sauces_dips_other_seasonings_and_dressings,
            food_cat1:food_cat5, InformasCat, 
            informas_cat_breads_rice_and_rice_products_without_added_fat_sugar_or_salt_noodles:informas_cat_baby_and_toddler_milk_formulae,
@@ -265,7 +271,7 @@ save(supermarket_item, supermarket_item_final, supermarket_item_final_clean, fil
   supermarket_item_final_analysis <- supermarket_item_final_clean%>%
   dplyr::select(
     #Store characteristics
-    county, location_entrance:location_checkout_edge, Supermarket_Sizea, SESa, Prominence_Level, TotalAreaMSq,
+    county, location_entrance:location_checkout_edge, locationexists, food, Supermarket_Sizea, SESa, Prominence_Level, TotalAreaMSq,
     #Adverts at store
     advert, q3p5a, q3p7, q3p8, q3p10, q5p1a_0:q5p1a_96, q5p2a_1:q5p2a_96,
     #Food/Drink Types and items sold in outlet
@@ -275,7 +281,7 @@ save(supermarket_item, supermarket_item_final, supermarket_item_final_clean, fil
     #shelve number and level where food products are placed
     shelves, level_1:level_3,
     #Food/Drink Brands and items advertised in outlet
-    q4p1_4us:q4p1_zits, q4p2b1_1:q4p2b1_300,
+    q4p1_4us:q4p1_zits, q4p2a_whole_grain_cereals:q4p2a_infant_formula, q4p2b1_1:q4p2b1_300,
     #WHO AFRO Food category
     food_cat_chocolate_and_sugar_confectionery_energy_bars_sweet_topping_and_desserts:food_cat_sauces_dips_other_seasonings_and_dressings,
     #INFORMA Food category
