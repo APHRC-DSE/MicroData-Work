@@ -229,11 +229,10 @@ supermarket_item_final_clean <- bind_cols(supermarket_item_final, supermarket_it
                                            supermarket_item_final_set2%>%dplyr::select(-key))%>%
   mutate(across(c( q5p1a:q5p1a_96, q5p2a:q5p2a_96, q7p3_1:q7p3_300, level_1:level_3, q4p2b1_1:q4p2b1_300), ~ifelse(.x == 0, "No",
                                  ifelse(.x > 0 , "Yes", .x)) ),
-         across(c(q5p1a:q5p1a_96, q5p2a:q5p2a_96, q7p3_1:q7p3_300, level_1:level_3, q4p2b1_1:q4p2b1_300), ~ factor(.x, levels = c("Yes", "No"))),
+         across(c(q7p3_1:q7p3_300, level_1:level_3), ~ factor(.x, levels = c("Yes", "No"))),
          q7p5 = fct_na_value_to_level(q7p5, level = "Not with cooked/uncooked category"),
          across(c(q3p5a, q3p7, q3p8, q3p10), ~fct_na_value_to_level(.x, level = "No Advert at location")  ),
-    across(c(q5p1a:q5p1a_96, q5p2a:q5p2a_96, q4p1_4us:q4p1_zits, q4p2a_whole_grain_cereals:q4p2a_infant_formula, q4p2b1_1:q4p2b1_300
-             ), ~as.character(.x)),
+    across(c(q4p1_4us:q4p1_zits, q4p2a_whole_grain_cereals:q4p2a_infant_formula), ~as.character(.x)),
          across(c(q5p1a:q5p1a_96, q5p2a:q5p2a_96, q4p1_4us:q4p1_zits, q4p2a_whole_grain_cereals:q4p2a_infant_formula, q4p2b1_1:q4p2b1_300
                   ), ~ifelse(advert == "No", "No Advert at location", .x)),
          across(c(q5p1a:q5p1a_96, q5p2a:q5p2a_96, q4p1_4us:q4p1_zits, q4p2a_whole_grain_cereals:q4p2a_infant_formula, q4p2b1_1:q4p2b1_300
@@ -270,6 +269,8 @@ save(supermarket_item, supermarket_item_final, supermarket_item_final_clean, fil
 
   supermarket_item_final_analysis <- supermarket_item_final_clean%>%
   dplyr::select(
+    #consent
+    pilotoractual:consent,
     #Store characteristics
     county, location_entrance:location_checkout_edge, locationexists, food, Supermarket_Sizea, SESa, Prominence_Level, TotalAreaMSq,
     #Adverts at store
@@ -288,8 +289,8 @@ save(supermarket_item, supermarket_item_final, supermarket_item_final_clean, fil
     food_cat5,
     informas_cat_breads_rice_and_rice_products_without_added_fat_sugar_or_salt_noodles:informas_cat_baby_and_toddler_milk_formulae,
     #Nova classification of foods
-    Nova_sales
-                )
+    Nova_sales)%>%
+  dplyr::select(-c(q7p3_14, q7p3_25, q7p3_30, q7p3_43, q7p3_49, q7p3_60, q7p3_78, q7p3_87, q7p3_94, q7p3_101, q7p3_115, q7p3_142, q7p3_146, q7p3_149, q7p3_157, q7p3_164, q7p3_170, q7p3_175, q7p3_190, q7p3_198, q7p3_212, q7p3_219, q7p3_234, q7p3_239, q7p3_248, q7p3_252, q7p3_256, q7p3_265, q7p3_283, q7p3_291, q7p3_300, q4p2b1_14, q4p2b1_25, q4p2b1_30, q4p2b1_43, q4p2b1_49, q4p2b1_60, q4p2b1_78, q4p2b1_87, q4p2b1_94, q4p2b1_101, q4p2b1_115, q4p2b1_142, q4p2b1_146, q4p2b1_149, q4p2b1_157, q4p2b1_164, q4p2b1_170, q4p2b1_175, q4p2b1_190, q4p2b1_198, q4p2b1_212, q4p2b1_219, q4p2b1_234, q4p2b1_239, q4p2b1_248, q4p2b1_252, q4p2b1_256, q4p2b1_265, q4p2b1_283, q4p2b1_291, q4p2b1_300, q5p1a_96, q5p2a_96, q7p2a_other_fruits, q7p2a_other_vegetables, q4p2a_other_fruits, q4p2a_other_vegetables, food_cat_other_dairy_based_desserts, informas_cat_other_high_fat_salt_products_include_meat_fish_bean_paste)) #unselect various "others" variables
 
 ```
 
@@ -341,10 +342,8 @@ Data collected included:
 
 ```{r data description}
 
-  tbl_summary(supermarket_item_final_clean%>%
-                dplyr::select(key,pilotoractual:consent)%>%
-                distinct(key, .keep_all = TRUE)%>%
-                dplyr::select(-key), 
+  tbl_summary(supermarket_item_final_analysis%>%
+                dplyr::select(pilotoractual:consent), 
                       type = list(
                         all_dichotomous() ~ "categorical")
                       , digits = list(all_continuous() ~ 2, 
@@ -400,7 +399,8 @@ The results are presented in narrative and summary tables. Statistical significa
 
 ```{r final variables descriptives}
 
- tbl_summary(supermarket_item_final_analysis, 
+ tbl_summary(supermarket_item_final_analysis%>%
+                dplyr::select(-c(pilotoractual:consent)), 
                       type = list(
                         all_dichotomous() ~ "categorical"
                         ,all_continuous() ~ "continuous2"
@@ -433,7 +433,7 @@ The results are presented in narrative and summary tables. Statistical significa
 #Top 20 foods/drinks items sold
 
 supermarket_item_final_analysis%>%
-  dplyr::select(q7p3_1:q7p3_300)%>%
+  dplyr::select(q7p3_1:q7p3_299)%>%
   pivot_longer(cols = everything(),
                names_to = "items",
                values_to = "value")%>%
@@ -455,7 +455,7 @@ supermarket_item_final_analysis%>%
   scale_y_continuous(breaks = seq(0, 250, by = 50), limits = c(0, 275))+
   supermarket_item_theme+
   geom_hline(yintercept = 0, color = "black")+
-  labs(x= "Food/drink items sold", y="No. of items", fill="", caption = "N=3669")+
+  labs(x= "Food/drink product name sold", y="No. of items", fill="", caption = "N=3669")+
   coord_flip()+
   guides(fill= guide_legend(reverse = TRUE))
 
@@ -467,7 +467,7 @@ supermarket_item_final_analysis%>%
 #Top 20 foods/drinks items advertised
 
 supermarket_item_final_analysis%>%
-  dplyr::select(q4p2b1_1:q4p2b1_300)%>%
+  dplyr::select(q4p2b1_1:q4p2b1_299)%>%
   pivot_longer(cols = everything(),
                names_to = "items",
                values_to = "value")%>%
@@ -489,7 +489,7 @@ supermarket_item_final_analysis%>%
   scale_y_continuous(breaks = seq(0, 250, by = 50), limits = c(0, 260))+
   supermarket_item_theme+
   geom_hline(yintercept = 0, color = "black")+
-  labs(x= "Food/drink items advertised", y="No. of items", fill="", caption = "N=3657; 12 Missing")+
+  labs(x= "Food/drink product name advertised", y="No. of items", fill="", caption = "N=3657; 12 Missing")+
   coord_flip()+
   guides(fill= guide_legend(reverse = TRUE))
 
@@ -537,7 +537,7 @@ supermarket_item_final_analysis%>%
 
 ```{r final variables by county}
 
-  tbl_summary(supermarket_item_final_analysis%>%dplyr::select(-c(q7p3_1:q7p3_300, q4p2b1_1:q4p2b1_300)),
+  tbl_summary(supermarket_item_final_analysis%>%dplyr::select(-c(pilotoractual:consent, q7p3_1:q7p3_299, q4p2b1_1:q4p2b1_299)),
               by = county,
                       type = list(
                         all_dichotomous() ~ "categorical"
@@ -576,7 +576,7 @@ supermarket_item_final_analysis%>%
 
 ```{r final variables by Supermarket Size}
 
-  tbl_summary(supermarket_item_final_analysis%>%dplyr::select(-c(q7p3_1:q7p3_300, q4p2b1_1:q4p2b1_300)),
+  tbl_summary(supermarket_item_final_analysis%>%dplyr::select(-c(pilotoractual:consent, q7p3_1:q7p3_299, q4p2b1_1:q4p2b1_299)),
               by = Supermarket_Sizea,
                       type = list(
                         all_dichotomous() ~ "categorical"
@@ -615,7 +615,7 @@ supermarket_item_final_analysis%>%
 
 ```{r final variables by Adverts at location}
 
-  tbl_summary(supermarket_item_final_analysis%>%dplyr::select(-c(q7p3_1:q7p3_300, q4p2b1_1:q4p2b1_300)),
+  tbl_summary(supermarket_item_final_analysis%>%dplyr::select(-c(pilotoractual:consent, q7p3_1:q7p3_299, q4p2b1_1:q4p2b1_299)),
               by = advert,
                       type = list(
                         all_dichotomous() ~ "categorical"
@@ -648,7 +648,7 @@ supermarket_item_final_analysis%>%
   as_flex_table() #covert gtsummary object to flex table object. 
 
 ```
-
+ 
 
 
 
