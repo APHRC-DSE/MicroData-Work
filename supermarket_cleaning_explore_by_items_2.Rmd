@@ -172,7 +172,8 @@ supermarket_item_final_labels <- as.data.frame(labelled::generate_dictionary(sup
 
 ```{r final subset data, results="hide", include=FALSE}
 
-# Dummy code location
+# Dummy code location, Food/drink product group sold, Food/drink product group advertised, WHO AFRO Food category, 
+#INFORMA food category: Core and Non-Core
 supermarket_item_final_set1 <- supermarket_item_final%>%
   dplyr::select(key, location, q7p2a, q4p2a, food_cat, InformasCat)%>%
   mutate(location = fct_recode(location,
@@ -204,7 +205,7 @@ supermarket_item_final_set1 <- supermarket_item_final%>%
   labelled::set_variable_labels(!!!supermarket_item_final_labels[names(supermarket_item_final_labels) %in% names(.)]) #labeling variables from data dictionary
 
 
-# Dummy code Food/Drink Brands advertised in outlet
+# Dummy code Food/Drink Brands advertised
 supermarket_item_final_set2 <- supermarket_item_final%>%
   dplyr::select(key, q4p1)%>%
   fastDummies::dummy_cols(select_columns = c("q4p1"),
