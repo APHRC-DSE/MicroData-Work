@@ -722,7 +722,8 @@ Data collected included:
 
 * The data has `r ncol(supermarket_store)` variables and `r nrow(supermarket_store)` observations.
 
-* Data was transformed to `r ncol(supermarket_store_final_raw)` variables and `r nrow(supermarket_store_final_raw)` observations and then summarised over unique rows (key) to form `r ncol(supermarket_store_final_clean)` variables and `r nrow(supermarket_store_final_clean)` observations.
+* Data was transformed to `r ncol(supermarket_store_final_raw)` variables and `r nrow(supermarket_store_final_raw)` observations and then summarised
+over unique rows (key) to form `r ncol(supermarket_store_final_clean)` variables and `r nrow(supermarket_store_final_clean)` observations.
 
 ```{r data description}
 
