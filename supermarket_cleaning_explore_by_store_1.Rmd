@@ -193,6 +193,7 @@ supermarket_store_labels <- supermarket_store_variable_attr%>%
                    ifelse(shelves < 11, "shelf6_10",
                    ifelse(shelves < 16, "shelf11_15", "shelf_15ormore"))),
          shelves = factor(shelves, levels = c("shelf1_5", "shelf6_10", "shelf11_15", "shelf_15ormore")),
+         q7p5 = fct_na_value_to_level(q7p5, level = "Not with cooked/uncooked category"),
          q4p1 = ifelse(q4p1 == "Brookside, Tuzo,molo milk and mountain fresh", "Brookside Tuzo Molo Mountain fresh",
                 ifelse(q4p1 == "KCC gold crown milk, Daima milk,Lato milk", "KCC Daima Lato",
                 ifelse(q4p1 == "Lato milk,victory farm yoghurt,daima milk", "Lato Victory Farm Daima",
@@ -250,8 +251,7 @@ supermarket_store_final_set1 <- supermarket_store_final%>%
                           "Edge" = "Edge (This location includes anything along the perimeter of the store. This inc",
                           "Island Medium" = "Island Medium (These are temporary displays that are often moved or altered. The",
                           "Checkout side" = "Checkout side (The area alongside and just in front of the checkout – often look",
-                          "Checkout edge" = "Checkout edge (The endcap of the checkout which faces the rest of the store.)" ),
-         q7p5 = fct_na_value_to_level(q7p5, level = "Not with cooked/uncooked category")
+                          "Checkout edge" = "Checkout edge (The endcap of the checkout which faces the rest of the store.)" )
            #,q7p2a = str_to_lower(q7p2a),
            #q7p2a = gsub("(", "", q7p2a, fixed = TRUE), # "Fixed = TRUE" disables regex
            #q7p2a = gsub(")", "", q7p2a, fixed = TRUE), # "Fixed = TRUE" disables regex
@@ -624,6 +624,8 @@ supermarket_store_final_raw <- bind_cols(supermarket_store_final, supermarket_st
             informas_cat_breads_rice_and_rice_products_without_added_fat_sugar_or_salt_noodles:informas_cat_baby_and_toddler_milk_formulae,
             nova_sales_processed_culinary_ingredient:nova_sales_ultraprocessed_foods, 
             Supermarket_Sizea, SESa, prominence_level_low_prominence:prominence_level_high_prominence) #Arranging columns
+  
+  kable(as.data.frame(labelled::generate_dictionary(supermarket_store_final_raw)))
   
 ```
 

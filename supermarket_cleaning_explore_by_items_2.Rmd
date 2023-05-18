@@ -128,6 +128,7 @@ supermarket_item_final_labels <- as.data.frame(labelled::generate_dictionary(sup
                    ifelse(shelves < 11, "shelf6_10",
                    ifelse(shelves < 16, "shelf11_15", "shelf_15ormore"))),
          shelves = factor(shelves, levels = c("shelf1_5", "shelf6_10", "shelf11_15", "shelf_15ormore")),
+         q7p5 = fct_na_value_to_level(q7p5, level = "Not with cooked/uncooked category"),
          q4p1 = ifelse(q4p1 == "Brookside, Tuzo,molo milk and mountain fresh", "Brookside; Tuzo; Molo; Mountain fresh",
                 ifelse(q4p1 == "KCC gold crown milk, Daima milk,Lato milk", "KCC; Daima; Lato",
                 ifelse(q4p1 == "Lato milk,victory farm yoghurt,daima milk", "Lato; Victory Farm; Daima",
@@ -231,7 +232,6 @@ supermarket_item_final_clean <- bind_cols(supermarket_item_final, supermarket_it
   mutate(across(c( q5p1a:q5p1a_96, q5p2a:q5p2a_96, q7p3_1:q7p3_300, level_1:level_3, q4p2b1_1:q4p2b1_300), ~ifelse(.x == 0, "No",
                                  ifelse(.x > 0 , "Yes", .x)) ),
          across(c(q7p3_1:q7p3_300, level_1:level_3), ~ factor(.x, levels = c("Yes", "No"))),
-         q7p5 = fct_na_value_to_level(q7p5, level = "Not with cooked/uncooked category"),
          across(c(q3p5a, q3p7, q3p8, q3p10), ~fct_na_value_to_level(.x, level = "No Advert at location")  ),
     across(c(q4p1_4us:q4p1_zits, q4p2a_whole_grain_cereals:q4p2a_infant_formula), ~as.character(.x)),
          across(c(q5p1a:q5p1a_96, q5p2a:q5p2a_96, q4p1_4us:q4p1_zits, q4p2a_whole_grain_cereals:q4p2a_infant_formula, q4p2b1_1:q4p2b1_300
