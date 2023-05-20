@@ -37,19 +37,19 @@ setwd(".")
 ```{r loading relevant packages, include=FALSE, results = "hide"}
 
 #library we need
-libs_supermarket <- c("googledrive" ,"tidyverse", "haven", "janitor", "knitr",
+libs_supermarket_store <- c("googledrive" ,"tidyverse", "haven", "janitor", "knitr",
                             "lubridate", "plotly", "gtsummary", "flextable", "fastDummies", "labelled")
 
 #install missing libraries
 
-inatalled_libs_supermarket <- libs_supermarket  %in% rownames(installed.packages())
-if (any(inatalled_libs_supermarket==F)) {
-  install.packages(libs_supermarket[!inatalled_libs_supermarket])
+inatalled_libs_supermarket_store <- libs_supermarket_store  %in% rownames(installed.packages())
+if (any(inatalled_libs_supermarket_store==F)) {
+  install.packages(libs_supermarket_store[!inatalled_libs_supermarket_store])
 }
 
 #load libraries
 
-invisible(lapply(libs_supermarket, library, character.only=T))
+invisible(lapply(libs_supermarket_store, library, character.only=T))
 
 set_gtsummary_theme(list(
   "tbl_summary-fn:percent_fun" = function(x) style_percent(x, digits = 1),
