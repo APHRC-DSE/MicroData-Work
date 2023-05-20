@@ -38,7 +38,7 @@ setwd(".")
 
 #library we need
 libs_supermarket <- c("googledrive" ,"tidyverse", "haven", "janitor", "knitr",
-                            "lubridate", "plotly", "gtsummary", "flextable", "fastDummies")
+                            "lubridate", "plotly", "gtsummary", "flextable", "fastDummies", "labelled")
 
 #install missing libraries
 

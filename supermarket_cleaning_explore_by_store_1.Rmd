@@ -38,7 +38,7 @@ setwd(".")
 
 #library we need
 libs_supermarket <- c("googledrive" ,"tidyverse", "haven", "janitor", "knitr",
-                            "lubridate", "plotly", "gtsummary", "flextable", "fastDummies")
+                            "lubridate", "plotly", "gtsummary", "flextable", "fastDummies", "labelled")
 
 #install missing libraries
 
@@ -570,11 +570,11 @@ supermarket_store_final_raw <- bind_cols(supermarket_store_final, supermarket_st
   
   
   supermarket_store_final_clean <- supermarket_store_final%>%
-  dplyr::select(county:interviewdate, New_StoreLength1:id)%>%
+  dplyr::select(county:interviewdate, New_StoreLength1:id, locationexists, food, Supermarket_Sizea, SESa)%>%
   distinct(key, .keep_all = TRUE)%>%
     left_join(
   supermarket_store_final_raw%>%
-    group_by(key, locationexists, food, Supermarket_Sizea, SESa)%>%
+    group_by(key)%>%
     summarise(across(c(location_entrance:advert_yes, q3p5a_small_a4_but_1_3m_x_1_9m:q3p10_combined, q5p1a:q5p1a_96, q5p2a:q5p2a_96,
                      q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300, q7p5_cooked:q7p5_both, 
                      q7p5_not_with_cooked_uncooked_category, shelves_shelf1_5:shelves_shelf_15ormore,
@@ -624,8 +624,6 @@ supermarket_store_final_raw <- bind_cols(supermarket_store_final, supermarket_st
             informas_cat_breads_rice_and_rice_products_without_added_fat_sugar_or_salt_noodles:informas_cat_baby_and_toddler_milk_formulae,
             nova_sales_processed_culinary_ingredient:nova_sales_ultraprocessed_foods, 
             Supermarket_Sizea, SESa, prominence_level_low_prominence:prominence_level_high_prominence) #Arranging columns
-  
-  kable(as.data.frame(labelled::generate_dictionary(supermarket_store_final_raw)))
   
 ```
 
