@@ -121,8 +121,7 @@ save(supermarket_advert_final_clean, file = "supermarket_advert_final.RData")
     #Store characteristics
     county, location_entrance:location_checkout_edge, locationexists, food, Supermarket_Sizea, SESa, Prominence_Level, TotalAreaMSq,
     #Adverts at store
-    #adverts,
-    q3p5a, q3p7, q3p8, q3p10, q5p1a_0:q5p1a_96, q5p2a_1:q5p2a_96,
+    advert, q3p5a, q3p7, q3p8, q3p10, q5p1a_0:q5p1a_96, q5p2a_1:q5p2a_96,
     #Food/Drink Types and items sold in outlet
     q7p2a_whole_grain_cereals:q7p2a_infant_formula, q7p3_1:q7p3_300,
     #Types of foods sold in the outlet cooked, uncooked or both
