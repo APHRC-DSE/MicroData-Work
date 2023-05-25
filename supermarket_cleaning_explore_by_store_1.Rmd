@@ -771,10 +771,10 @@ The quantitative data was cleaned and analysed using R version 4.2.3 (2023).
 
 Descriptive summary statistics in form of frequency, percentage, mean and standard deviation were generated to examine all selected variables.
 
-Chi-square test and Fisher's exact test where appropriate were used for categorical data to analyze difference in proportion of all selected variables as a function of county, store size ad adverts at location(Yes/No).
+Chi-square test and Fisher's exact test where appropriate were used for categorical data to analyze difference in proportion of all selected variables as a function of county and store size.
 
-For continous data, Wilcoxon rank sum test/Kruskal-Wallis rank sum test where appropriate was used to examine the comparison of county, store size
-and adverts at location(Yes/No) with continous variables.
+For continous data, Wilcoxon rank sum test/Kruskal-Wallis rank sum test where appropriate was used to examine the comparison of county and store size
+with continous variables.
 
 The results are presented in narrative and summary tables. Statistical significance was set at p<0.05
 
