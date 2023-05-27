@@ -457,6 +457,3 @@ supermarket_advert_final_analysis%>%
 
 
 
-
-
-
