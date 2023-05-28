@@ -4,12 +4,8 @@ author: "Reinpeter"
 date: "`r Sys.Date()`"
 output:
   word_document: 
-    fig_width: 12
-    fig_height: 8
     number_sections: yes
   pdf_document:
-    fig_width: 12
-    fig_height: 8
     number_sections: yes
   html_document:
     toc: yes
@@ -32,26 +28,25 @@ knitr::opts_chunk$set(#include = TRUE,
 
 setwd(".")
 
-
 ```
 
 
 ```{r loading relevant packages, include=FALSE, results = "hide"}
 
 #library we need
-libs_diabetes <- c("googledrive" ,"tidyverse", "haven", "janitor", "knitr", "lubridate", "plotly", "gtsummary", "flextable",
-                   "sjlabelled", "rstatix", "lme4", "lmerTest")
+libs_diabetes_merge <- c("googledrive" ,"tidyverse", "haven", "janitor", "knitr", "lubridate", "plotly", "gtsummary", "flextable",
+                   "sjlabelled", "rstatix", "lme4", "lmerTest", "labelled")
 
 #install missing libraries
 
-inatalled_libs_diabetes <- libs_diabetes  %in% rownames(installed.packages())
-if (any(inatalled_libs_diabetes==F)) {
-  install.packages(libs_diabetes[!inatalled_libs_diabetes])
+inatalled_libs_diabetes_merge  <- libs_diabetes_merge %in% rownames(installed.packages())
+if (any(inatalled_libs_diabetes_merge==F)) {
+  install.packages(libs_diabetes_merge[!inatalled_libs_diabetes_merge])
 }
 
 #load libraries
 
-invisible(lapply(libs_diabetes, library, character.only=T))
+invisible(lapply(libs_diabetes_merge, library, character.only=T))
 
 
 set_gtsummary_theme(list(
@@ -73,6 +68,7 @@ wdfbaseline_followup_list <- list.files(path = ".", pattern = "*.RData", full.na
 invisible(lapply(wdfbaseline_followup_list, load, .GlobalEnv))
 
 ```
+
 
 ```{r assigning variable labels}
 
@@ -97,6 +93,7 @@ diabetes_followup_labels <- diabetes_followup_variable_attr%>%
   deframe()
 
 ```
+
 
 ```{r subset data, results="hide", include=FALSE}
 
@@ -188,7 +185,7 @@ readr::write_csv(wdfbaseline_followup_clean_etl1,"wdfbaseline_followup_clean_etl
 
 # **Introduction**
 
-This study titled [**Improving the lives of diabetics in Nairobi's slum through access to quality health care**](https://microdataportal.aphrc.org/index.php/catalog/75) was under the **Health and Well-Being (HaW) Theme** and aimed to improve the management of diabetes and other comorbidities with emphasis on the use of integrated guidelines and patient empowerment. It was carried out from Individual respondents living in Korogocho and Viwandani informal settlements in Nairobi.
+This study titled [**Improving the lives of diabetics in Nairobi's slum through access to quality health care**](https://microdataportal.aphrc.org/index.php/catalog/75) was under the **Health and Well-Being (HaW) Theme** and aimed to improve the management of diabetes and other comorbidities with emphasis on the use of integrated guidelines and patient empowerment. It was carried out from Individual respondents living in informal settlements in Nairobi.
 
 This analysis aims to assess impact of interventions on clinical parameters (i.e weight, bmi, systolic blood pressure, diastolic blood pressure, waist measurements, hip measurements, waist to hip ratio, blood glucose)
 
@@ -198,17 +195,17 @@ This analysis aims to assess impact of interventions on clinical parameters (i.e
   wdfbaseline_followup_final_analysis <- wdfbaseline_followup_cleaned_matched_columns%>%
   dplyr::select( study_id, wdf_q1_9:wdf_q1_12,
     #socio-demographics
-    wdf_q1_5, wdf_q1_4_age_group,
+    wdf_q1_5, wdf_q1_4_age,
     #History of medical conditions and treatment
     wdf_q2_1, wdf_q2_9, wdf_q2_19a:wdf_q2_19f,
     #Lifestyle history/Health behaviour
     wdf_q3_2, wdf_q3_7, wdf_q3_10, wdf_q3_14,
     #Clinical and anthropometric measurements
-    wdf_q5_0a:wdf_q5_0c, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_5a_b, wdf_q5_6_7, 
+    wdf_q5_0a:wdf_q5_0b, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_5a_b, wdf_q5_6_7, 
     wdf_q5_5_6_7_bmi, wdf_q5_8a_b_waist_hip_ratio
                 )%>%
   filter( wdf_q1_9 != "One year follow-up")%>%
-  mutate(across(c(wdf_q2_1, wdf_q2_9, wdf_q3_2, wdf_q3_7, wdf_q3_10, wdf_q3_14, wdf_q5_0a:wdf_q5_0c), ~fct_rev(.x)),
+  mutate(across(c(wdf_q2_1, wdf_q2_9, wdf_q3_2, wdf_q3_7, wdf_q3_10, wdf_q3_14, wdf_q5_0a:wdf_q5_0b), ~fct_rev(.x)),
          across(c(wdf_q2_19a:wdf_q2_19f), ~factor(.x, levels = c("No", "Yes", "Dont Know"))))%>%
   mutate_if(is.factor, ~fct_drop(.x #, only = c("")
             ))%>% #drop unused factor levels
@@ -220,13 +217,14 @@ This analysis aims to assess impact of interventions on clinical parameters (i.e
 
 # **Descriptives**
 
-## Follow-up Rate
+## Follow-up Rate - Diabetes(Yes/No)
 
-```{r final variables by data collection round}
+```{r final variables by diatetes by data collection round}
 
- tbl_summary(wdfbaseline_followup_final_analysis%>%
-    dplyr::select(-study_id),
-              by = wdf_q1_9,
+ tbl_strata(wdfbaseline_followup_final_analysis,
+               strata = wdf_q2_1,
+               .tbl_fun = ~ .x %>%
+              tbl_summary(by = wdf_q1_9, include = -study_id,
                       type = list(
                         all_dichotomous() ~ "categorical"
                          ,all_continuous() ~ "continuous2"
@@ -244,21 +242,20 @@ This analysis aims to assess impact of interventions on clinical parameters (i.e
   modify_header(label = "**Variables**") %>% # update the column header
   bold_labels() %>%
   italicize_levels()%>%
-  #add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
+  add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
   #add_overall() %>%
-  #add_difference() %>% #add column for difference between two group, confidence interval, and p-value
-  modify_spanning_header(c("stat_1", "stat_2") ~ "**Data Collection Round**")%>%
   modify_footnote(
     all_stat_cols() ~ "Mean (SD); Median (IQR); Range; Frequency (%)"
-  )%>%
-  as_flex_table() #covert gtsummary object to flex table object. 
+  ),
+    .header = "**Diabetes {strata}**, N = {n}"
+ )
 
 ```
 
 
 ## Normality of continous variables
 
-```{r}
+```{r baseline followup}
 
   wdfbaseline_followup_final_analysis%>%
     dplyr::select(wdf_q1_9, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_5a_b, wdf_q5_6_7, 
@@ -274,110 +271,26 @@ This analysis aims to assess impact of interventions on clinical parameters (i.e
 
 ```
 
+
+```{r baseline followup diabetes}
+
+  wdfbaseline_followup_final_analysis%>%
+    dplyr::select(wdf_q1_9, wdf_q2_1, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_5a_b, wdf_q5_6_7, 
+    wdf_q5_5_6_7_bmi, wdf_q5_8a_b_waist_hip_ratio )%>%
+  #sjlabelled:::label_to_colnames() %>% #variable labels to column names.
+  group_by(wdf_q1_9, wdf_q2_1)%>%
+  shapiro_test(wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_5a_b, wdf_q5_6_7, 
+    wdf_q5_5_6_7_bmi, wdf_q5_8a_b_waist_hip_ratio)%>%
+  left_join(as.data.frame(labelled::generate_dictionary(wdfbaseline_followup_final_analysis))%>%
+  dplyr::select(variable, label),
+  by = c("variable" = "variable"))%>%
+  kable()
+
+```
+
 # **Inferential statistics**
 
 ## Paired tests
-
-### Overall
-
-```{r paired test overall}
-
-overall_paired <- wdfbaseline_followup_final_analysis%>%
-  dplyr::select(study_id, wdf_q1_9, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_6_7, 
-    wdf_q5_5_6_7_bmi, wdf_q5_8a_b_waist_hip_ratio)%>%
-  pivot_longer(
-    cols = !c(study_id, wdf_q1_9),
-    names_to = "clinical_parameters",
-    values_to = "value"
-  )%>%
-  drop_na()%>%
-  group_by(study_id, clinical_parameters)%>%
-  filter(n()==2)%>%
-  ungroup()%>%
-  mutate(clinical_parameters = as_factor(clinical_parameters))%>%
-  nest_by(clinical_parameters)%>%
-  mutate(table_out = list(tbl_summary(data,
-               by = wdf_q1_9, include = -study_id,
-                       type = list(
-                         c(value) ~ "continuous2",
-                          all_continuous() ~ "continuous2")
-                       , statistic = all_continuous() ~ c(
-                                      "{mean} ({sd})", 
-                                      "{median} ({p25}, {p75})", 
-                                      "{min}, {max}")
-                       , digits = all_continuous() ~ 2
-                       , missing = "ifany" # don't list missing data separately #ifany #no
-                       ,missing_text = "Missing"
-                       ) %>% 
-   modify_header(label = "**Differences Overall**") %>% # update the column header
-   bold_labels() %>%
-   italicize_levels()%>%
-   add_p(pvalue_fun = ~style_pvalue(.x, digits = 3),
-         test = list(value ~ "paired.wilcox.test"), group = study_id ) %>%
-   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
-   modify_footnote(
-     all_stat_cols() ~ "Mean (SD); Median (IQR); Range"
-   )
-    ))
-
-tbl_merge(overall_paired$table_out,
-    tab_spanner = c("**Systolic Blood pressure**", "**Diastolic Blood pressure**", "**Blood glucose (mmol/L)**", "**BMI (kg/m2)**",
-                    "**Weight in kgs**", "**Waist circumference**", "**Waist-to-hip ratio**", "**Hip circumference**"))
-
-```
-
-### Gender
-
-```{r paired test gender}
-
-gender_paired <- wdfbaseline_followup_final_analysis%>%
-  dplyr::select(study_id, wdf_q1_9, wdf_q1_5, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_6_7, 
-    wdf_q5_5_6_7_bmi, wdf_q5_8a_b_waist_hip_ratio)%>%
-  pivot_longer(
-    cols = !c(study_id, wdf_q1_9, wdf_q1_5),
-    names_to = "clinical_parameters",
-    values_to = "value"
-  )%>%
-  drop_na()%>%
-  group_by(study_id, clinical_parameters, wdf_q1_5)%>%
-  filter(n()==2)%>%
-  ungroup()%>%
-  mutate(clinical_parameters = as_factor(clinical_parameters))%>%
-  nest_by(clinical_parameters)%>%
-  mutate(table_out = list(
-    tbl_strata(data,
-               strata = wdf_q1_5,
-               .tbl_fun = ~ .x %>%
-        tbl_summary(
-               by = wdf_q1_9, include = -study_id,
-                       type = list(
-                         c(value) ~ "continuous2",
-                          all_continuous() ~ "continuous2")
-                       , statistic = all_continuous() ~ c(
-                                      "{mean} ({sd})", 
-                                      "{median} ({p25}, {p75})", 
-                                      "{min}, {max}")
-                       , digits = all_continuous() ~ 2
-                       , missing = "ifany" # don't list missing data separately #ifany #no
-                       ,missing_text = "Missing"
-                       ) %>% 
-   modify_header(label = "**Differences Gender (1=Female, 2=Male)**") %>% # update the column header
-   bold_labels() %>%
-   italicize_levels()%>%
-   add_p(pvalue_fun = ~style_pvalue(.x, digits = 3),
-         test = list(value ~ "paired.wilcox.test"), group = study_id ) %>%
-   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
-   modify_footnote(
-     all_stat_cols() ~ "Mean (SD); Median (IQR); Range"
-   )
-   )
-   ))
-
-tbl_merge(gender_paired$table_out,
-    tab_spanner = c("**Systolic Blood pressure**", "**Diastolic Blood pressure**", "**Blood glucose (mmol/L)**", "**BMI (kg/m2)**",
-                    "**Weight in kgs**", "**Waist circumference**", "**Waist-to-hip ratio**", "**Hip circumference**"))
-
-```
 
 ### Diabetes
 
@@ -432,15 +345,125 @@ tbl_merge(diabetes_paired$table_out,
 
 ```
 
-### Hypertension
 
-```{r paired test hypertension}
+### Diabetes Yes - Gender
 
-hypertension_paired <- wdfbaseline_followup_final_analysis%>%
-  dplyr::select(study_id, wdf_q1_9, wdf_q2_9, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_6_7, 
+```{r paired test diabetes yes gender}
+
+diabetes_yes_gender_paired <- wdfbaseline_followup_final_analysis%>%
+  dplyr::select(study_id, wdf_q1_9, wdf_q1_5, wdf_q2_1, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_6_7, 
     wdf_q5_5_6_7_bmi, wdf_q5_8a_b_waist_hip_ratio)%>%
+  filter(wdf_q2_1 == "Yes")%>%
   pivot_longer(
-    cols = !c(study_id, wdf_q1_9, wdf_q2_9),
+    cols = !c(study_id, wdf_q1_9, wdf_q2_1,wdf_q1_5),
+    names_to = "clinical_parameters",
+    values_to = "value"
+  )%>%
+  drop_na()%>%
+  group_by(study_id, clinical_parameters, wdf_q1_5)%>%
+  filter(n()==2)%>%
+  ungroup()%>%
+  mutate(clinical_parameters = as_factor(clinical_parameters))%>%
+  nest_by(clinical_parameters)%>%
+  mutate(table_out = list(
+    tbl_strata(data,
+               strata = wdf_q1_5,
+               .tbl_fun = ~ .x %>%
+        tbl_summary(
+               by = wdf_q1_9, include = -c(study_id,wdf_q2_1),
+                       type = list(
+                         c(value) ~ "continuous2",
+                          all_continuous() ~ "continuous2")
+                       , statistic = all_continuous() ~ c(
+                                      "{mean} ({sd})", 
+                                      "{median} ({p25}, {p75})", 
+                                      "{min}, {max}")
+                       , digits = all_continuous() ~ 2
+                       , missing = "ifany" # don't list missing data separately #ifany #no
+                       ,missing_text = "Missing"
+                       ) %>% 
+   modify_header(label = "**Diabetic Yes- Gender (1=Female, 2=Male)**") %>% # update the column header
+   bold_labels() %>%
+   italicize_levels()%>%
+   add_p(pvalue_fun = ~style_pvalue(.x, digits = 3),
+         test = list(value ~ "paired.wilcox.test"), group = study_id ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+   modify_footnote(
+     all_stat_cols() ~ "Mean (SD); Median (IQR); Range"
+   )
+   )
+   ))
+
+tbl_merge(diabetes_yes_gender_paired$table_out,
+    tab_spanner = c("**Systolic Blood pressure**", "**Diastolic Blood pressure**", "**Blood glucose (mmol/L)**", "**BMI (kg/m2)**",
+                    "**Weight in kgs**", "**Waist circumference**", "**Waist-to-hip ratio**", "**Hip circumference**"))
+
+```
+
+### Diabetes No - Gender
+
+```{r paired test diabetes no gender}
+
+diabetes_no_gender_paired <- wdfbaseline_followup_final_analysis%>%
+  dplyr::select(study_id, wdf_q1_9, wdf_q1_5, wdf_q2_1, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_6_7, 
+    wdf_q5_5_6_7_bmi, wdf_q5_8a_b_waist_hip_ratio)%>%
+  filter(wdf_q2_1 == "No")%>%
+  pivot_longer(
+    cols = !c(study_id, wdf_q1_9, wdf_q2_1,wdf_q1_5),
+    names_to = "clinical_parameters",
+    values_to = "value"
+  )%>%
+  drop_na()%>%
+  group_by(study_id, clinical_parameters, wdf_q1_5)%>%
+  filter(n()==2)%>%
+  ungroup()%>%
+  mutate(clinical_parameters = as_factor(clinical_parameters))%>%
+  nest_by(clinical_parameters)%>%
+  mutate(table_out = list(
+    tbl_strata(data,
+               strata = wdf_q1_5,
+               .tbl_fun = ~ .x %>%
+        tbl_summary(
+               by = wdf_q1_9, include = -c(study_id,wdf_q2_1),
+                       type = list(
+                         c(value) ~ "continuous2",
+                          all_continuous() ~ "continuous2")
+                       , statistic = all_continuous() ~ c(
+                                      "{mean} ({sd})", 
+                                      "{median} ({p25}, {p75})", 
+                                      "{min}, {max}")
+                       , digits = all_continuous() ~ 2
+                       , missing = "ifany" # don't list missing data separately #ifany #no
+                       ,missing_text = "Missing"
+                       ) %>% 
+   modify_header(label = "**Diabetic No- Gender (1=Female, 2=Male)**") %>% # update the column header
+   bold_labels() %>%
+   italicize_levels()%>%
+   add_p(pvalue_fun = ~style_pvalue(.x, digits = 3),
+         test = list(value ~ "paired.wilcox.test"), group = study_id ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+   modify_footnote(
+     all_stat_cols() ~ "Mean (SD); Median (IQR); Range"
+   )
+   )
+   ))
+
+tbl_merge(diabetes_no_gender_paired$table_out,
+    tab_spanner = c("**Systolic Blood pressure**", "**Diastolic Blood pressure**", "**Blood glucose (mmol/L)**", "**BMI (kg/m2)**",
+                    "**Weight in kgs**", "**Waist circumference**", "**Waist-to-hip ratio**", "**Hip circumference**"))
+
+```
+
+### Diabetes Yes - Hypertension
+
+```{r paired test diabetes yes hypertension}
+
+diabetes_yes_hypertension_paired <- wdfbaseline_followup_final_analysis%>%
+  dplyr::select(study_id, wdf_q1_9, wdf_q2_9, wdf_q2_1, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_6_7, 
+    wdf_q5_5_6_7_bmi, wdf_q5_8a_b_waist_hip_ratio)%>%
+  filter(wdf_q2_1 == "Yes")%>%
+  pivot_longer(
+    cols = !c(study_id, wdf_q1_9, wdf_q2_1,wdf_q2_9),
     names_to = "clinical_parameters",
     values_to = "value"
   )%>%
@@ -455,7 +478,7 @@ hypertension_paired <- wdfbaseline_followup_final_analysis%>%
                strata = wdf_q2_9,
                .tbl_fun = ~ .x %>%
         tbl_summary(
-               by = wdf_q1_9, include = -study_id,
+               by = wdf_q1_9, include = -c(study_id,wdf_q2_1),
                        type = list(
                          c(value) ~ "continuous2",
                           all_continuous() ~ "continuous2")
@@ -467,7 +490,7 @@ hypertension_paired <- wdfbaseline_followup_final_analysis%>%
                        , missing = "ifany" # don't list missing data separately #ifany #no
                        ,missing_text = "Missing"
                        ) %>% 
-   modify_header(label = "**Differences (1=Not Hypertensive, 2=Hypertensive)**") %>% # update the column header
+   modify_header(label = "**Diabetic Yes- (1=Not Hypertensive, 2=Hypertensive)**") %>% # update the column header
    bold_labels() %>%
    italicize_levels()%>%
    add_p(pvalue_fun = ~style_pvalue(.x, digits = 3),
@@ -479,17 +502,73 @@ hypertension_paired <- wdfbaseline_followup_final_analysis%>%
    )
    ))
 
-tbl_merge(hypertension_paired$table_out,
+tbl_merge(diabetes_yes_hypertension_paired$table_out,
     tab_spanner = c("**Systolic Blood pressure**", "**Diastolic Blood pressure**", "**Blood glucose (mmol/L)**", "**BMI (kg/m2)**",
                     "**Weight in kgs**", "**Waist circumference**", "**Waist-to-hip ratio**", "**Hip circumference**"))
 
 ```
 
+### Diabetes No - Hypertension
+
+```{r paired test diabetes no hypertension}
+
+diabetes_no_hypertension_paired <- wdfbaseline_followup_final_analysis%>%
+  dplyr::select(study_id, wdf_q1_9, wdf_q2_9, wdf_q2_1, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_6_7, 
+    wdf_q5_5_6_7_bmi, wdf_q5_8a_b_waist_hip_ratio)%>%
+  filter(wdf_q2_1 == "No")%>%
+  pivot_longer(
+    cols = !c(study_id, wdf_q1_9, wdf_q2_1,wdf_q2_9),
+    names_to = "clinical_parameters",
+    values_to = "value"
+  )%>%
+  drop_na()%>%
+  group_by(study_id, clinical_parameters, wdf_q2_9)%>%
+  filter(n()==2)%>%
+  ungroup()%>%
+  mutate(clinical_parameters = as_factor(clinical_parameters))%>%
+  nest_by(clinical_parameters)%>%
+  mutate(table_out = list(
+    tbl_strata(data,
+               strata = wdf_q2_9,
+               .tbl_fun = ~ .x %>%
+        tbl_summary(
+               by = wdf_q1_9, include = -c(study_id,wdf_q2_1),
+                       type = list(
+                         c(value) ~ "continuous2",
+                          all_continuous() ~ "continuous2")
+                       , statistic = all_continuous() ~ c(
+                                      "{mean} ({sd})", 
+                                      "{median} ({p25}, {p75})", 
+                                      "{min}, {max}")
+                       , digits = all_continuous() ~ 2
+                       , missing = "ifany" # don't list missing data separately #ifany #no
+                       ,missing_text = "Missing"
+                       ) %>% 
+   modify_header(label = "**Diabetic No- (2=Hypertensive)**") %>% # update the column header
+   bold_labels() %>%
+   italicize_levels()%>%
+   add_p(pvalue_fun = ~style_pvalue(.x, digits = 3),
+         test = list(value ~ "paired.wilcox.test"), group = study_id ) %>%
+   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+   modify_footnote(
+     all_stat_cols() ~ "Mean (SD); Median (IQR); Range"
+   )
+   )
+   ))
+
+tbl_merge(diabetes_no_hypertension_paired$table_out,
+    tab_spanner = c("**Systolic Blood pressure**", "**Diastolic Blood pressure**", "**Blood glucose (mmol/L)**", "**BMI (kg/m2)**",
+                    "**Weight in kgs**", "**Waist circumference**", "**Waist-to-hip ratio**", "**Hip circumference**"))
+
+```
+
+
 ## Linear mixed effect model
 
 Linear Mixed model adjusting for all response variables allowing intercept to vary by invividual id.
 
-The REML = TRUE argument is used to specify that the REstricted Maximum Likelihood criterion be used rather than the loglikelihood criterion for optimization of parameter estimates.
+REML = TRUE argument is used to specify that the REstricted Maximum Likelihood criterion to be used for optimization of parameter estimates.
+REML = FALSE argument is used to specify that the loglikelihood criterion to be used for optimization of parameter estimates.
 
 ### Random intercept model
 
@@ -498,13 +577,13 @@ Random intercept model - Each individual is assigned a different intercept as we
 ```{r mixed model}
 
 diabetes_mixed_model <- wdfbaseline_followup_final_analysis%>%
-  dplyr::select(study_id, wdf_q1_9, wdf_q1_5, wdf_q1_4_age_group,
+  dplyr::select(study_id, wdf_q1_9, wdf_q1_5, wdf_q1_4_age,
                 #History of medical conditions and treatment
     wdf_q2_1, wdf_q2_9, wdf_q2_19a:wdf_q2_19f,
     #Lifestyle history/Health behaviour
     wdf_q3_2, wdf_q3_7, wdf_q3_10, wdf_q3_14,
     #Clinical and anthropometric measurements
-    wdf_q5_0a:wdf_q5_0c, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_6_7, 
+    wdf_q5_0a:wdf_q5_0b, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_6_7, 
     wdf_q5_5_6_7_bmi, wdf_q5_8a_b_waist_hip_ratio)%>%
   drop_na()%>%
   group_by(study_id)%>%
@@ -518,18 +597,41 @@ diabetes_mixed_model <- wdfbaseline_followup_final_analysis%>%
   )%>%
   mutate(clinical_parameters = as_factor(clinical_parameters))%>%
   nest_by(clinical_parameters)%>%
-  mutate(lmm_random_intercept_model = list(lmer(value ~ wdf_q1_5 + wdf_q1_4_age_group + wdf_q2_1 +wdf_q2_9 + wdf_q2_19a + 
-        wdf_q2_19b + wdf_q2_19c + wdf_q2_19d + wdf_q2_19e + wdf_q2_19f + wdf_q3_2 + wdf_q3_7 + wdf_q3_10 + wdf_q3_14 + 
-          wdf_q5_0a + wdf_q5_0b + wdf_q5_0c + wdf_q1_9 + (1 | study_id), data = data, REML = TRUE)),
-         lmm_random_intercept_null_model = list(lmer(value ~ 1 + (1 | study_id), data = data, REML = TRUE)),
-        table_out_random_intercept = list(tbl_regression(lmm_random_intercept_model, exponentiate = FALSE, #broom.mixed package required
+  mutate(data_diabetes_yes = list(filter(data, wdf_q2_1 == "Yes")),
+          data_diabetes_no = list(filter(data, wdf_q2_1 == "No")) ,
+        #diabetes wdf_q2_1 column dropped. wdf_q3_7(currently use smokeless tobacco) omitted due to only having 1 level
+        lmm_random_intercept_diabetes_yes = list(lmer(value ~ wdf_q1_5 + wdf_q1_4_age + wdf_q2_9 + wdf_q2_19a + 
+        wdf_q2_19b + wdf_q2_19c + wdf_q2_19d + wdf_q2_19e + wdf_q2_19f + wdf_q3_2 + wdf_q3_10 + wdf_q3_14 + 
+          wdf_q5_0a + wdf_q5_0b + wdf_q1_9 + (1 | study_id), data = data_diabetes_yes, REML = TRUE)),
+        lmm_random_intercept_null_diabetes_yes = list(lmer(value ~ 1 + (1 | study_id), data = data_diabetes_yes, REML = TRUE)),
+        #diabetes column dropped. wdf_q2_9(hypertensive), wdf_q2_19a(neuropathy),wdf_q2_19c(amputation), wdf_q2_19d(kidney),
+        #wdf_q3_2(currently smoke tobacco), wdf_q3_10(alcohol 12months), wdf_q3_14(alcohol 30days) omitted due to only having 1 level
+        lmm_random_intercept_diabetes_no = list(lmer(value ~ wdf_q1_5 + wdf_q1_4_age +  
+        wdf_q2_19b + wdf_q2_19e + wdf_q2_19f + wdf_q3_7 +
+          wdf_q5_0a + wdf_q5_0b + wdf_q1_9 + (1 | study_id), data = data_diabetes_no, REML = TRUE)),
+        lmm_random_intercept_null_diabetes_no = list(lmer(value ~ 1 + (1 | study_id), data = data_diabetes_no, REML = TRUE)),
+  table_out_random_intercept_diabetes_yes = list(tbl_regression(lmm_random_intercept_diabetes_yes, exponentiate = FALSE, #broom.mixed package required
     estimate_fun = ~style_sigfig(.x, digits = 2),
     pvalue_fun = ~style_pvalue(.x, digits = 3))%>%
   #add_global_p()%>% # add global p-value for categorical variables
   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
   bold_labels() %>%
   italicize_levels()%>% 
-  modify_header(label = "**Linear Mixed full Model - random_intercept**")%>% # update the column header
+  modify_header(label = "**Linear Mixed diabetes(Yes) - random_intercept**")%>% # update the column header
+  add_significance_stars(
+    pattern = "{estimate} ({conf.low} to {conf.high}){stars}",
+    hide_ci = TRUE, hide_se = TRUE , hide_p = FALSE) %>%
+  modify_header(estimate ~ "**Beta (95% CI)**") %>%
+  modify_footnote(estimate ~ "Beta, CI = Confidence Interval", abbreviation = TRUE)
+    ),
+  table_out_random_intercept_diabetes_no = list(tbl_regression(lmm_random_intercept_diabetes_no, exponentiate = FALSE, #broom.mixed package required
+    estimate_fun = ~style_sigfig(.x, digits = 2),
+    pvalue_fun = ~style_pvalue(.x, digits = 3))%>%
+  #add_global_p()%>% # add global p-value for categorical variables
+  bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  bold_labels() %>%
+  italicize_levels()%>% 
+  modify_header(label = "**Linear Mixed diabetes(No) - random_intercept**")%>% # update the column header
   add_significance_stars(
     pattern = "{estimate} ({conf.low} to {conf.high}){stars}",
     hide_ci = TRUE, hide_se = TRUE , hide_p = FALSE) %>%
@@ -538,7 +640,12 @@ diabetes_mixed_model <- wdfbaseline_followup_final_analysis%>%
     )
   )
 
-tbl_merge(diabetes_mixed_model$table_out_random_intercept,
+
+tbl_merge(diabetes_mixed_model$table_out_random_intercept_diabetes_yes,
+    tab_spanner = c("**Systolic Blood pressure**", "**Diastolic Blood pressure**", "**Blood glucose (mmol/L)**", "**BMI (kg/m2)**",
+                    "**Weight in kgs**", "**Waist circumference**", "**Waist-to-hip ratio**", "**Hip circumference**"))
+
+tbl_merge(diabetes_mixed_model$table_out_random_intercept_diabetes_no,
     tab_spanner = c("**Systolic Blood pressure**", "**Diastolic Blood pressure**", "**Blood glucose (mmol/L)**", "**BMI (kg/m2)**",
                     "**Weight in kgs**", "**Waist circumference**", "**Waist-to-hip ratio**", "**Hip circumference**"))
 
@@ -546,67 +653,104 @@ tbl_merge(diabetes_mixed_model$table_out_random_intercept,
 
 ### Linear mixed model metrics
 
-```{r mixed model metrics}
+#### diabetes-yes
 
-diabetes_random_intercept_model_metrics <- list()
+```{r mixed model metrics diabetes yes}
 
-diabetes_random_intercept_null_model_metrics <- list()
+diabetes_random_intercept_diabetes_yes_metrics <- list()
 
-diabetes_mixed_model_comparison <- list()
+diabetes_random_intercept_null_diabetes_yes_metrics <- list()
+
+diabetes_mixed_diabetes_yes_comparison <- list()
 
 for (i in 1:length(diabetes_mixed_model$clinical_parameters)){
   
-  diabetes_random_intercept_model_metrics[i] <- print(
+  diabetes_random_intercept_diabetes_yes_metrics[i] <- print(
     kable(
-    list(broom::glance(diabetes_mixed_model$lmm_random_intercept_model[[i]])),
+    list(broom::glance(diabetes_mixed_model$lmm_random_intercept_diabetes_yes[[i]])),
     caption = paste0("full model",diabetes_mixed_model$clinical_parameters[[i]]) )
-  )
-  
-}
+  ) }
+
 
 for (i in 1:length(diabetes_mixed_model$clinical_parameters)){
   
-  diabetes_random_intercept_null_model_metrics[i] <- print(
+  diabetes_random_intercept_null_diabetes_yes_metrics[i] <- print(
     kable(
-    list(broom::glance(diabetes_mixed_model$lmm_random_intercept_null_model[[i]])),
+    list(broom::glance(diabetes_mixed_model$lmm_random_intercept_null_diabetes_yes[[i]])),
     caption = paste0("null model", diabetes_mixed_model$clinical_parameters[[i]]) )
-  )
-  
-}
+  ) }
+
 
 for (i in 1:length(diabetes_mixed_model$clinical_parameters)){
   
-  diabetes_mixed_model_comparison[i] <- print(
+  diabetes_mixed_diabetes_yes_comparison[i] <- print(
     kable(
-    list(anova(diabetes_mixed_model$lmm_random_intercept_null_model[[i]], diabetes_mixed_model$lmm_random_intercept_model[[i]])),
+    list(anova(diabetes_mixed_model$lmm_random_intercept_null_diabetes_yes[[i]], diabetes_mixed_model$lmm_random_intercept_diabetes_yes[[i]],
+               refit = FALSE)),
     caption = paste0("null model-full model", diabetes_mixed_model$clinical_parameters[[i]]) )
-  
-  )
-  
-}
+  ) }
 
 ```
 
+
+#### diabetes-no
+
+```{r mixed model metrics diabetes no}
+
+diabetes_random_intercept_diabetes_no_metrics <- list()
+
+diabetes_random_intercept_null_diabetes_no_metrics <- list()
+
+diabetes_mixed_diabetes_no_comparison <- list()
+
+for (i in 1:length(diabetes_mixed_model$clinical_parameters)){
+  
+  diabetes_random_intercept_diabetes_no_metrics[i] <- print(
+    kable(
+    list(broom::glance(diabetes_mixed_model$lmm_random_intercept_diabetes_no[[i]])),
+    caption = paste0("full model",diabetes_mixed_model$clinical_parameters[[i]]) )
+  ) }
+
+
+for (i in 1:length(diabetes_mixed_model$clinical_parameters)){
+  
+  diabetes_random_intercept_null_diabetes_no_metrics[i] <- print(
+    kable(
+    list(broom::glance(diabetes_mixed_model$lmm_random_intercept_null_diabetes_no[[i]])),
+    caption = paste0("null model", diabetes_mixed_model$clinical_parameters[[i]]) )
+  ) }
+
+
+for (i in 1:length(diabetes_mixed_model$clinical_parameters)){
+  
+  diabetes_mixed_diabetes_no_comparison[i] <- print(
+    kable(
+    list(anova(diabetes_mixed_model$lmm_random_intercept_null_diabetes_no[[i]], diabetes_mixed_model$lmm_random_intercept_diabetes_no[[i]],
+               refit = FALSE)),
+    caption = paste0("null model-full model", diabetes_mixed_model$clinical_parameters[[i]]) )
+  ) }
+
+```
 
 ## Change in score - linear regression
 
 ```{r Change in score linear regression model}
 
 diabetes_change_in_score_model <- diabetes_baseline_final_clean%>%
-  dplyr::select(study_id, wdf_q1_9, wdf_q1_5, wdf_q1_4_age_group,
+  dplyr::select(study_id, wdf_q1_9, wdf_q1_5, wdf_q1_4_age,
                 #History of medical conditions and treatment
     wdf_q2_1, wdf_q2_9, wdf_q2_19a:wdf_q2_19f,
     #Lifestyle history/Health behaviour
     wdf_q3_2, wdf_q3_7, wdf_q3_10, wdf_q3_14,
     #Clinical and anthropometric measurements
-    wdf_q5_0a:wdf_q5_0c, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_6_7, 
+    wdf_q5_0a:wdf_q5_0b, wdf_q5_8a, wdf_q5_8b, wdf_q5_10, wdf_q5_1_2_3a, wdf_q5_1_2_3b, wdf_q5_6_7, 
     wdf_q5_5_6_7_bmi, wdf_q5_8a_b_waist_hip_ratio)%>%
   left_join(diabetes_followup_final_clean%>%
               filter(wdf_q1_9_followup == "Six month follow-up")%>%
               dplyr::select(study_id, wdf_q5_8a_followup, wdf_q5_8b_followup, wdf_q5_10_followup, wdf_q5_1_2_3a_followup,
                             wdf_q5_1_2_3b_followup, wdf_q5_6_7_followup, wdf_q5_5_6_7_followup_bmi, wdf_q5_8a_b_followup_waist_hip_ratio),
             by = c("study_id" = "study_id"))%>%
-    mutate(across(c(wdf_q2_1, wdf_q2_9, wdf_q3_2, wdf_q3_7, wdf_q3_10, wdf_q3_14, wdf_q5_0a:wdf_q5_0c), ~fct_rev(.x)),
+    mutate(across(c(wdf_q2_1, wdf_q2_9, wdf_q3_2, wdf_q3_7, wdf_q3_10, wdf_q3_14, wdf_q5_0a:wdf_q5_0b), ~fct_rev(.x)),
          across(c(wdf_q2_19a:wdf_q2_19f), ~factor(.x, levels = c("No", "Yes", "Dont Know"))),
          change_wdf_q5_8a = wdf_q5_8a_followup - wdf_q5_8a,
          change_wdf_q5_8b = wdf_q5_8b_followup - wdf_q5_8b,
@@ -630,18 +774,41 @@ diabetes_change_in_score_model <- diabetes_baseline_final_clean%>%
   )%>%
   mutate(clinical_parameters = as_factor(clinical_parameters))%>%
   nest_by(clinical_parameters)%>%
-  mutate(lm_model = list(glm(value ~ wdf_q1_5 + wdf_q1_4_age_group + wdf_q2_1 +wdf_q2_9 + wdf_q2_19a + 
-        wdf_q2_19b + wdf_q2_19c + wdf_q2_19d + wdf_q2_19e + wdf_q2_19f + wdf_q3_2 + wdf_q3_7 + wdf_q3_10 + wdf_q3_14 + 
-          wdf_q5_0a + wdf_q5_0b + wdf_q5_0c , data = data, family = gaussian  )),
-        lm_null_model = list(glm(value ~ 1 , data = data, family = gaussian  )),
-        table_out_lm = list(tbl_regression(lm_model, exponentiate = FALSE, #broom.mixed package required
+  mutate( data_diabetes_yes = list(filter(data, wdf_q2_1 == "Yes")),
+          data_diabetes_no = list(filter(data, wdf_q2_1 == "No")) ,
+        #diabetes wdf_q2_1 column dropped. wdf_q3_7(currently use smokeless tobacco) omitted due to only having 1 level
+        lm_diabetes_yes = list(glm(value ~ wdf_q1_5 + wdf_q1_4_age +wdf_q2_9 + wdf_q2_19a + 
+        wdf_q2_19b + wdf_q2_19c + wdf_q2_19d + wdf_q2_19e + wdf_q2_19f + wdf_q3_2 + wdf_q3_10 + wdf_q3_14 + 
+          wdf_q5_0a + wdf_q5_0b, data = data_diabetes_yes, family = gaussian  )),
+        lm_null_diabetes_yes = list(glm(value ~ 1 , data = data_diabetes_yes, family = gaussian  )),
+        #diabetes column dropped. wdf_q2_9(hypertensive), wdf_q2_19a(neuropathy),wdf_q2_19c(amputation), wdf_q2_19d(kidney),
+        #wdf_q3_2(currently smoke tobacco), wdf_q3_10(alcohol 12months), wdf_q3_14(alcohol 30days) 
+        # wdf_q5_0a(patient anaemic), wdf_q5_0b(patient dehydrated) omitted due to only having 1 level
+        lm_diabetes_no = list(glm(value ~ wdf_q1_5 + wdf_q1_4_age + 
+         wdf_q2_19b + wdf_q2_19e + wdf_q2_19f + wdf_q3_7, data = data_diabetes_no, family = gaussian  )),
+        lm_null_diabetes_no = list(glm(value ~ 1 , data = data_diabetes_no, family = gaussian  )),
+        table_out_lm_diabetes_yes = list(tbl_regression(lm_diabetes_yes, exponentiate = FALSE, #broom.mixed package required
     estimate_fun = ~style_sigfig(.x, digits = 2),
     pvalue_fun = ~style_pvalue(.x, digits = 3))%>%
   #add_global_p()%>% # add global p-value for categorical variables
   bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
   bold_labels() %>%
   italicize_levels()%>% 
-  modify_header(label = "**Linear regression**")%>% # update the column header
+  modify_header(label = "**Linear regression - Diabetes(Yes)**")%>% # update the column header
+  add_significance_stars(
+    pattern = "{estimate} ({conf.low} to {conf.high}){stars}",
+    hide_ci = TRUE, hide_se = TRUE , hide_p = FALSE) %>%
+  modify_header(estimate ~ "**Beta (95% CI)**") %>%
+  modify_footnote(estimate ~ "Beta, CI = Confidence Interval", abbreviation = TRUE)
+    ),
+  table_out_lm_diabetes_no = list(tbl_regression(lm_diabetes_no, exponentiate = FALSE, #broom.mixed package required
+    estimate_fun = ~style_sigfig(.x, digits = 2),
+    pvalue_fun = ~style_pvalue(.x, digits = 3))%>%
+  #add_global_p()%>% # add global p-value for categorical variables
+  bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  bold_labels() %>%
+  italicize_levels()%>% 
+  modify_header(label = "**Linear regression - Diabetes(No)**")%>% # update the column header
   add_significance_stars(
     pattern = "{estimate} ({conf.low} to {conf.high}){stars}",
     hide_ci = TRUE, hide_se = TRUE , hide_p = FALSE) %>%
@@ -650,7 +817,12 @@ diabetes_change_in_score_model <- diabetes_baseline_final_clean%>%
     )
   )
 
-tbl_merge(diabetes_change_in_score_model$table_out_lm,
+
+tbl_merge(diabetes_change_in_score_model$table_out_lm_diabetes_yes,
+    tab_spanner = c("**Systolic Blood pressure**", "**Diastolic Blood pressure**", "**Blood glucose (mmol/L)**", "**BMI (kg/m2)**",
+                    "**Weight in kgs**", "**Waist circumference**", "**Waist-to-hip ratio**", "**Hip circumference**"))
+
+tbl_merge(diabetes_change_in_score_model$table_out_lm_diabetes_no,
     tab_spanner = c("**Systolic Blood pressure**", "**Diastolic Blood pressure**", "**Blood glucose (mmol/L)**", "**BMI (kg/m2)**",
                     "**Weight in kgs**", "**Waist circumference**", "**Waist-to-hip ratio**", "**Hip circumference**"))
 
@@ -659,50 +831,81 @@ tbl_merge(diabetes_change_in_score_model$table_out_lm,
 
 ### change in score - linear regression model metrics
 
-```{r Change in score linear regression model metrics}
+#### diabetes-yes
 
-diabetes_change_in_score_model_metrics <- list()
+```{r Change in score linear regression model metrics diabetes yes}
 
-diabetes_change_in_score_null_model_metrics <- list()
+diabetes_change_in_score_diabetes_yes_metrics <- list()
 
-diabetes_change_in_score_model_comparison <- list()
+diabetes_change_in_score_null_diabetes_yes_metrics <- list()
 
-for (j in 1:length(diabetes_change_in_score_model$clinical_parameters)){
-  
-  diabetes_change_in_score_model_metrics[i] <- print(
-    kable(
-    list(broom::glance(diabetes_change_in_score_model$lm_model[[i]])),
-    caption = paste0("full model",diabetes_change_in_score_model$clinical_parameters[[i]]) )
-  )
-}
-
+diabetes_change_in_score_diabetes_yes_comparison <- list()
 
 for (j in 1:length(diabetes_change_in_score_model$clinical_parameters)){
   
-  diabetes_change_in_score_null_model_metrics[i] <- print(
+  diabetes_change_in_score_diabetes_yes_metrics[j] <- print(
     kable(
-    list(broom::glance(diabetes_change_in_score_model$lm_null_model[[i]])),
-    caption = paste0("null model", diabetes_change_in_score_model$clinical_parameters[[i]]) )
-   )
-
-}
+    list(broom::glance(diabetes_change_in_score_model$lm_diabetes_yes[[j]])),
+    caption = paste0("full model",diabetes_change_in_score_model$clinical_parameters[[j]]) )
+  ) }
 
 
 for (j in 1:length(diabetes_change_in_score_model$clinical_parameters)){
   
-  diabetes_change_in_score_model_comparison[i] <- print(
+  diabetes_change_in_score_null_diabetes_yes_metrics[j] <- print(
     kable(
-    list(anova(diabetes_change_in_score_model$lm_null_model[[i]], diabetes_change_in_score_model$lm_model[[i]])),
-    caption = paste0("null model-full model", diabetes_change_in_score_model$clinical_parameters[[i]]) )
-  )
+    list(broom::glance(diabetes_change_in_score_model$lm_null_diabetes_yes[[j]])),
+    caption = paste0("null model", diabetes_change_in_score_model$clinical_parameters[[j]]) )
+   ) }
+
+
+for (j in 1:length(diabetes_change_in_score_model$clinical_parameters)){
   
-}
+  diabetes_change_in_score_diabetes_yes_comparison[j] <- print(
+    kable(
+    list(anova(diabetes_change_in_score_model$lm_null_diabetes_yes[[j]], diabetes_change_in_score_model$lm_diabetes_yes[[j]])),
+    caption = paste0("null model-full model", diabetes_change_in_score_model$clinical_parameters[[j]]) )
+  ) }
 
 ```
 
+#### diabetes-no
+
+```{r Change in score linear regression model metrics diabetes no}
+
+diabetes_change_in_score_diabetes_no_metrics <- list()
+
+diabetes_change_in_score_null_diabetes_no_metrics <- list()
+
+diabetes_change_in_score_diabetes_no_comparison <- list()
+
+for (j in 1:length(diabetes_change_in_score_model$clinical_parameters)){
+  
+  diabetes_change_in_score_diabetes_no_metrics[j] <- print(
+    kable(
+    list(broom::glance(diabetes_change_in_score_model$lm_diabetes_no[[j]])),
+    caption = paste0("full model",diabetes_change_in_score_model$clinical_parameters[[j]]) )
+  ) }
 
 
+for (j in 1:length(diabetes_change_in_score_model$clinical_parameters)){
+  
+  diabetes_change_in_score_null_diabetes_no_metrics[j] <- print(
+    kable(
+    list(broom::glance(diabetes_change_in_score_model$lm_null_diabetes_no[[j]])),
+    caption = paste0("null model", diabetes_change_in_score_model$clinical_parameters[[j]]) )
+   ) }
 
+
+for (j in 1:length(diabetes_change_in_score_model$clinical_parameters)){
+  
+  diabetes_change_in_score_diabetes_no_comparison[j] <- print(
+    kable(
+    list(anova(diabetes_change_in_score_model$lm_null_diabetes_no[[j]], diabetes_change_in_score_model$lm_diabetes_no[[j]])),
+    caption = paste0("null model-full model", diabetes_change_in_score_model$clinical_parameters[[j]]) )
+  ) }
+
+```
 
 
 
