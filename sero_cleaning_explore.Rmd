@@ -17,6 +17,19 @@ output:
     number_sections: yes
 ---
 
+# **Introduction**
+
+This study titled [**Surveillance and epidemiologic evaluation of COVID-19, DFID-2019 Serosurveillance Project**](https://microdataportal.aphrc.org/index.php/catalog/138/study-description) was under the **Health and Well-Being (HaW) Theme** and aimed to describe the clinical, demographic, and genomic profile, trends, clinical course and outcomes of patients with COVID-19 through surveillance. It was carried out from Individual respondents who are residents of Korogocho and Viwandani.
+
+
+# **Data**
+
+Data collected electronically using (SARS COV-2 Sero-survey - Questionnaire) included:
+
+* Sociodemographic information: Participants name, ethnicity, education, religion, age, gender, place of residence.
+
+* Health information: Access to prevention services, risk of exposure to COVID 19, outmigration and inmigration information, vaccination status of children participants, laboratory information including blood sample collection and blood grouping.
+
 
 ```{r setup, results="hide", include=FALSE}
 
@@ -38,7 +51,7 @@ setwd(".")
 
 #library we need
 libs_sero_clean <- c("googledrive" ,"tidyverse", "haven", "janitor", "knitr",
-                            "lubridate", "plotly", "gtsummary", "flextable")
+                            "lubridate", "plotly", "gtsummary", "flextable", "factoextra")
 
 #install missing libraries
 
@@ -80,7 +93,7 @@ theme_gtsummary_compact()
 ```{r reading sero data locally, results="hide", include=FALSE}
 
   ##Reading the .dta
-  sero <- read_dta("sero_results_data.dta")%>%
+  sero <- read_dta(paste0(sero_local_download$local_path))%>%
   mutate_if(is.labelled, as_factor)%>%
    labelled::set_variable_labels( #labeling unlabeled variables and relabling for final data dictionary
   q8_gender = "The gender of the participant",
@@ -151,15 +164,13 @@ theme_gtsummary_compact()
   q17_none = "The participant household has no: electricity/television/sofa/cupboard/DVD player/radio/table/clock",
   q22_reason_nocard = "Reason for no vaccination records",
   spikepos = "sero positive"
+ )
 
-   )
-
-sero1 <- read_dta("sero_results_data.dta") #read_dta(paste0(sero_local_download$local_path))
+sero1 <- read_dta(paste0(sero_local_download$name))
 
 sero_variable_attr <- as.data.frame(labelled::generate_dictionary(sero, labels = TRUE, values = TRUE))
 
 sero_variable_attr1 <- as.data.frame(labelled::look_for(sero1, labels = TRUE, values = TRUE))
-
 
 ```
 
@@ -180,7 +191,6 @@ scan_report_id <- drive_find(shared_drive = c(shared_drive_find()$id),
 
 scan_report_local_download <- drive_download(scan_report_id$id, overwrite = TRUE)
 
-
 ```
 
 
@@ -191,7 +201,6 @@ scan_report_local_download <- drive_download(scan_report_id$id, overwrite = TRUE
 sero_labels <- sero_variable_attr%>%
   select(variable, label)%>%
   deframe()
-
 
 ```
 
@@ -257,14 +266,71 @@ sero_final_clean <- sero_final%>%
                     bcg_confirm:mcv2), ~ fct_drop(.x, only = c("missing:impute"))))%>% #dropping specific unused factors in columns
    labelled::set_variable_labels(!!!sero_labels[names(sero_labels) %in% names(.)]) #labeling variables from data dictionary
 
-
 ```
 
 
+```{r pca socio economic status, results="hide"}
+
+#Principal component analysis on socio economic variables
+
+ses_df <- sero_final_clean%>%
+  dplyr::select(studyid, q17_electricity:q17_clock, q17_floor_type, q17_wall_type, q17_roof_type, q17_fuel_type, q17_toilet_type)%>%
+  mutate(across(c(q17_electricity:q17_clock), ~ fct_rev(.x)))%>%
+  mutate(q17_floor_type = factor(q17_floor_type, levels = c("earth/sand", "cement","other")))%>%
+  mutate(q17_fuel_type = factor(q17_fuel_type, levels = c("other", "wood","kerosene", "charcoal", "lpg/natural gas","electricity")))%>%
+  mutate(across(everything(), ~as.numeric(.x)) )%>%
+  drop_na()
+
+  
+### Perform PCA
+
+#prcomp() uses the singular value decomposition (SVD) which examines the covariances / correlations between individuals
+
+ses_pca <- prcomp(ses_df[,-1], center = TRUE, scale. = TRUE)
+
+pca_summ <- summary(ses_pca)
+print(pca_summ)
+
+
+#The first principal component explains the largest proportion of the total variance and it is used as the wealth index to represent the 
+#household's wealth
+ses_index <- ses_pca$x[, 1, drop=TRUE]
+
+loadings <- pca_summ$rotation[, 1, drop=TRUE]
+loadings
+
+## Variance explained plot
+#Visualize eigenvalues (scree plot). Show the percentage of variances explained by each principal component.
+ses_explained_plot <- fviz_screeplot(ses_pca, addlabels = TRUE)
+print(ses_explained_plot)
+
+## PC plots
+#Graph of variables. Positive correlated variables point to the same side of the plot. Negative correlated variables point to opposite sides 
+#of the graph.
+
+ses_pc_plot <- fviz_pca_var(ses_pca,
+             col.var = "contrib", # Color by contributions to the PC
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = FALSE     # Avoid text overlapping
+             )
+
+print(ses_pc_plot)
+
+
+```
+
 ```{r sero final data for analysis, results="hide", include=FALSE}
 
-# make dataset with variables for descriptive and inferential statistics
+sero_final_clean <- (sero_final_clean%>%
+                    left_join(ses_df%>%   
+                       mutate(ses_index = ses_index)%>%
+                         dplyr::select(studyid, ses_index), by = c("studyid" = "studyid"))%>%
+                       labelled::set_variable_labels(#labeling created variables
+     ses_index = "Socio-economic index"
+   )
+	)
 
+# make dataset with variables for descriptive and inferential statistics
 sero_final_analysis <- sero_final_clean%>%
   dplyr::select( #socio-demographics
     spikepos, replace, q9_location, q8_gender, q6_education_level, age_group_new, q7_age_new, q6_religion,
@@ -277,7 +343,7 @@ sero_final_analysis <- sero_final_clean%>%
    q10_covid_contact, q16_own_risk, q16_info_edu, q16_hand_wash, q16_face_masks, q16_sanitizers,
                                 covid_vaccine, q19_lost_job, q20_healthcare_access, q20_services_missed,
                 #socio-economic status
-   q17_electricity:q17_none, q17_floor_type, q17_wall_type, q17_roof_type, q17_fuel_type, q17_toilet_type,
+   q17_electricity:q17_none, q17_floor_type, q17_wall_type, q17_roof_type, q17_fuel_type, q17_toilet_type, ses_index,
                 #Migration, vaccination and blood group
    q18_outmigrant_member, q18_inmigrant_member, q21_bcg_scar, q23_sampling, sample_type, blood_group
                 )
@@ -288,16 +354,15 @@ sero_final_analysis <- sero_final_clean%>%
 ```{r saving locally sero final clean data, results="hide", include=FALSE}
 
 #final clean sero data
-
 #saving as .Rdata
 save(sero_final_clean, sero_final_analysis, file = "sero_results_data_clean_analysis.RData")
 
 #saving as .csv
 readr::write_csv(sero_final_clean%>%
-                   dplyr::select(-c(q7_age_new, age_group_new)),"sero_results_data_clean.csv", na="")
+                   dplyr::select(-c(q7_age_new, age_group_new, ses_index)),"sero_results_data_clean.csv", na="")
 
 haven::write_dta(sero_final_clean%>%
-                   dplyr::select(-c(q7_age_new, age_group_new)),"sero_results_data_clean.dta")
+                   dplyr::select(-c(q7_age_new, age_group_new, ses_index)),"sero_results_data_clean.dta")
 
 ```
 
@@ -305,7 +370,6 @@ haven::write_dta(sero_final_clean%>%
 ```{r create sero ggplot theme, results="hide", include=FALSE}
 
 # Creating own ggplot theme to be reused
-
 sero_theme <-
     ggplot2::theme_minimal() +
     ggplot2::theme(
@@ -325,20 +389,6 @@ sero_theme <-
       )
 
 ```
-
-
-# **Introduction**
-
-This study titled [**Surveillance and epidemiologic evaluation of COVID-19, DFID-2019 Serosurveillance Project**](https://microdataportal.aphrc.org/index.php/catalog/138/study-description) was under the **Health and Well-Being (HaW) Theme** and aimed to describe the clinical, demographic, and genomic profile, trends, clinical course and outcomes of patients with COVID-19 through surveillance. It was carried out from Individual respondents who are residents of Korogocho and Viwandani.
-
-
-# **Data**
-
-Data collected electronically using (SARS COV-2 Sero-survey - Questionnaire) included:
-
-* Sociodemographic information: Participants name, ethnicity, education, religion, age, gender, place of residence.
-
-* Health information: Access to prevention services, risk of exposure to COVID 19, outmigration and inmigration information, vaccination status of children participants, laboratory information including blood sample collection and blood grouping.
 
 
 ## Data description
@@ -403,7 +453,6 @@ The results are presented in narrative and summary tables. Statistical significa
 
 # **Descriptive statistics**
 
-
 ```{r all variable descriptives}
 
  tbl_summary(sero_final_analysis, 
@@ -425,7 +474,6 @@ The results are presented in narrative and summary tables. Statistical significa
   italicize_levels()%>%
   add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
   as_flex_table() #covert gtsummary object to knitrkable object. also use as_flex_table() to maintain identation, footnotes, spanning headers
-
 
 ```
 
@@ -489,12 +537,10 @@ The results are presented in narrative and summary tables. Statistical significa
 
 * Participants who experienced at least one pain symptom were `r paste0(nrow(sero_final_clean[sero_final_clean$q11_pain=="yes",]), "(",round((nrow(sero_final_clean[sero_final_clean$q11_pain=="yes",])*100)/nrow(sero_final_clean),1), "%)")`.  
 
-
 * Of the `r nrow(sero_final_clean[sero_final_clean$q11_no_symptoms=="no",])` participants who experienced at least one health symptom, majority `r paste0("(",round((nrow(sero_final_clean[sero_final_clean$q12_medical_attention=="yes",])*100)/nrow(sero_final_clean[sero_final_clean$q11_no_symptoms=="no",]),1), "%)")` required medical attention and the least `r paste0("(",round((nrow(sero_final_clean[sero_final_clean$q12_hospitalized=="yes",])*100)/nrow(sero_final_clean[sero_final_clean$q11_no_symptoms=="no",]),1), "%)")` required to be hospitalized.
 
 
 ```{r, fig.width=10, fig.height=6}
-
 
   sero_final_clean%>%
   dplyr::select(q12_medical_attention, q12_miss_work, q12_hospitalized)%>%
@@ -529,7 +575,6 @@ The results are presented in narrative and summary tables. Statistical significa
 ## Health Symptoms of Household members
 
 * In the last 6 months, more than half of participants household members had not been sick `r paste0("(",round((nrow(sero_final_clean[sero_final_clean$q13_hhmember_sick=="no",])*100)/nrow(sero_final_clean),1), "%)")` and majority had not died `r paste0("(",round((nrow(sero_final_clean[sero_final_clean$q15_hhm_died=="no",])*100)/nrow(sero_final_clean),1), "%)")`. 
-
 
 * `r paste0("(",round((nrow(sero_final_clean[sero_final_clean$q13_hhm_no_symptoms=="no" & !is.na(sero_final_clean$q13_hhm_no_symptoms),])*100)/nrow(sero_final_clean[!is.na(sero_final_clean$q13_hhm_no_symptoms),]),1), "%)")` of the participants household members experienced at least one health symptom with cough `r paste0("(",round((nrow(sero_final_clean[sero_final_clean$q13_hhm_cough=="yes" & !is.na(sero_final_clean$q13_hhm_cough),])*100)/nrow(sero_final_clean[!is.na(sero_final_clean$q13_hhm_cough),]),1), "%)")` being the most experienced symptom, followed by fever `r paste0("(",round((nrow(sero_final_clean[sero_final_clean$q13_hhm_fever=="yes" & !is.na(sero_final_clean$q13_hhm_fever),])*100)/nrow(sero_final_clean[!is.na(sero_final_clean$q13_hhm_fever),]),1), "%)")`, runny nose `r paste0("(",round((nrow(sero_final_clean[sero_final_clean$q13_hhm_runny_nose=="yes" & !is.na(sero_final_clean$q13_hhm_runny_nose),])*100)/nrow(sero_final_clean[!is.na(sero_final_clean$q13_hhm_runny_nose),]),1), "%)")` , headache `r paste0("(",round((nrow(sero_final_clean[sero_final_clean$q13_hhm_headache=="yes" & !is.na(sero_final_clean$q13_hhm_headache),])*100)/nrow(sero_final_clean[!is.na(sero_final_clean$q13_hhm_headache),]),1), "%)")` weakness `r paste0("(",round((nrow(sero_final_clean[sero_final_clean$q13_hhm_weakness=="yes" & !is.na(sero_final_clean$q13_hhm_weakness),])*100)/nrow(sero_final_clean[!is.na(sero_final_clean$q13_hhm_weakness),]),1), "%)")` and sore throat `r paste0("(",round((nrow(sero_final_clean[sero_final_clean$q13_hhm_sore_throat=="yes" & !is.na(sero_final_clean$q13_hhm_sore_throat),])*100)/nrow(sero_final_clean[!is.na(sero_final_clean$q13_hhm_sore_throat),]),1), "%)")` 
 
@@ -568,7 +613,6 @@ The results are presented in narrative and summary tables. Statistical significa
 
 
 * Participants household members who experienced at least one pain symptom were `r paste0(nrow(sero_final_clean[sero_final_clean$q13_hhm_pain =="yes" & !is.na(sero_final_clean$q13_hhm_pain),]), "(",round((nrow(sero_final_clean[sero_final_clean$q13_hhm_pain=="yes" & !is.na(sero_final_clean$q13_hhm_pain),])*100)/nrow(sero_final_clean[!is.na(sero_final_clean$q13_hhm_pain),]),1), "%)")`.
-
 
 * Of the `r nrow(sero_final_clean[sero_final_clean$q13_hhm_no_symptoms=="no" & !is.na(sero_final_clean$q13_hhm_no_symptoms),])` participants household members who experienced at least one health symptom, majority required medical attention `r paste0("(",round((nrow(sero_final_clean[ !is.na(sero_final_clean$q14_hhm_medical_attention) & sero_final_clean$q14_hhm_medical_attention=="yes",])*100)/nrow(sero_final_clean[sero_final_clean$q13_hhm_no_symptoms=="no" & !is.na(sero_final_clean$q13_hhm_no_symptoms),]),1), "%)")` and the least required to be hospitalized `r paste0("(",round((nrow(sero_final_clean[!is.na(sero_final_clean$q14_hhm_hospitalized) & sero_final_clean$q14_hhm_hospitalized=="yes",])*100)/nrow(sero_final_clean[sero_final_clean$q13_hhm_no_symptoms=="no" & !is.na(sero_final_clean$q13_hhm_no_symptoms),]),1), "%)")`.
 
@@ -612,7 +656,6 @@ The results are presented in narrative and summary tables. Statistical significa
 ### COVID-19 Contact and Risk
 
 * Majority of participants stated they had no contact with anyone with suspected or confirmed COVID-19 `r paste0("(",round((nrow(sero_final_clean[sero_final_clean$q10_covid_contact=="no",])*100)/nrow(sero_final_clean),1), "%)")` and the least proportion rated their own risk of getting infected with the virus that causes COVID-19 as **nil** `r paste0("(",round((nrow(sero_final_clean[sero_final_clean$q16_own_risk=="nil",])*100)/nrow(sero_final_clean),1), "%)")`.
-
 
 ### COVID-19 Prevention services
 
@@ -746,9 +789,38 @@ The results are presented in narrative and summary tables. Statistical significa
   coord_flip()+
   guides(fill= guide_legend(reverse = TRUE))
   
+```
+
+```{r ses index ggplot histogram}
+
+sero_final_clean%>%
+  dplyr::select(ses_index)%>%
+  ggplot(aes(x = ses_index))+ 
+  geom_histogram(bins = 50, color = "black", fill = "gray") +
+  geom_vline(aes(xintercept = mean(ses_index, na.rm=TRUE)), 
+             linetype = "dashed", size = 0.6)+
+  scale_x_continuous(n.breaks = 10)
+
+#By default, geom_histogram() uses 30 bins - this might not be good default. You can change the number of bins (e.g.: bins = 50) or the bin width
+#(e.g.: binwidth = 0.5)
+#The y axis corresponds to the count of weight values. If you want to change the plot in order to have the density on y axis, specify the 
+#argument y = ..density.. in aes().
 
 ```
 
+```{r ses index ggplot histogram and density}
+
+sero_final_clean%>%
+  dplyr::select(ses_index)%>%
+  ggplot(aes(x = ses_index))+ 
+  geom_histogram(aes(y = ..density..), bins = 50, color = "black", fill = "white") +
+  geom_density(alpha = 0.2, fill = "#FF6666") +
+  geom_vline(aes(xintercept = mean(ses_index, na.rm=TRUE)), 
+             linetype = "dashed", size = 0.6)+
+  scale_x_continuous(n.breaks = 10)
+
+
+```
 
 ## Migration, vaccination and blood group
 
@@ -756,11 +828,9 @@ The results are presented in narrative and summary tables. Statistical significa
 
 * Majority of the participants households had members who had not left `r paste0("(",round((nrow(sero_final_clean[sero_final_clean$q18_outmigrant_member =="no",])*100)/ nrow(sero_final_clean),1), "%)")` and not joined `r paste0("(",round((nrow(sero_final_clean[sero_final_clean$q18_inmigrant_member =="no",])*100)/ nrow(sero_final_clean),1), "%)")` in the last 6 months.
 
-
 ### Vaccination
 
 * Majority of the participants had a BCG scar `r paste0("(",round((nrow(sero_final_clean[sero_final_clean$q21_bcg_scar =="yes",])*100)/ nrow(sero_final_clean),1), "%)")` to indicate they have been BCG-vaccinated.
-
 
 ### Lab Results
 
@@ -803,7 +873,6 @@ The results are presented in narrative and summary tables. Statistical significa
     all_stat_cols() ~ "Mean (SD); Median (IQR); Range; Frequency (%)"
   )%>%
   as_flex_table() #covert gtsummary object to flex table object. 
-
 
 ```
 
@@ -856,7 +925,6 @@ The results are presented in narrative and summary tables. Statistical significa
 
 
 ## Location
-
 
 ```{r all variables by location}
 
@@ -935,7 +1003,6 @@ The results are presented in narrative and summary tables. Statistical significa
 
 
 ## Education level
-
 
 ```{r all variables by education level}
 
