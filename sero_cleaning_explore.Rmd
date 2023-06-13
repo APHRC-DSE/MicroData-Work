@@ -4,12 +4,8 @@ author: "Reinpeter"
 date: "`r Sys.Date()`"
 output:
   word_document: 
-    fig_width: 12
-    fig_height: 8
     number_sections: yes
   pdf_document:
-    fig_width: 12
-    fig_height: 8
     number_sections: yes
   html_document:
     toc: yes
@@ -269,7 +265,7 @@ sero_final_clean <- sero_final%>%
 ```
 
 
-```{r pca socio economic status, results="hide"}
+```{r pca socio economic status, results="hide", fig.width=10, fig.height=6}
 
 #Principal component analysis on socio economic variables
 
@@ -791,7 +787,7 @@ The results are presented in narrative and summary tables. Statistical significa
   
 ```
 
-```{r ses index ggplot histogram}
+```{r ses index ggplot histogram, fig.width=10, fig.height=6}
 
 sero_final_clean%>%
   dplyr::select(ses_index)%>%
@@ -808,7 +804,7 @@ sero_final_clean%>%
 
 ```
 
-```{r ses index ggplot histogram and density}
+```{r ses index ggplot histogram and density, fig.width=10, fig.height=6}
 
 sero_final_clean%>%
   dplyr::select(ses_index)%>%
