@@ -1,0 +1,87 @@
+---
+title: "African_authors_detailed_list - Mental Health"
+author: "Reinpeter"
+date: "`r Sys.Date()`"
+output:
+  word_document: 
+    number_sections: yes
+  pdf_document:
+    number_sections: yes
+  html_document:
+    toc: yes
+    toc_depth: 4
+    number_sections: yes
+---
+
+
+```{r setup, results="hide", include=FALSE}
+
+## Set Chunk requirements
+knitr::opts_chunk$set(#include = TRUE,
+                      echo=FALSE, message = FALSE, warning = FALSE)
+
+```
+
+```{r setting working directory, include=FALSE}
+
+## Setting work directory
+
+setwd(".")
+
+```
+
+```{r loading relevant packages, include=FALSE}
+
+#library we need
+libs_mental_health <- c("googledrive", "tidyverse", "janitor", "knitr", "readxl")
+
+#install missing libraries
+
+inatalled_libs_mental_health <- libs_mental_health  %in% rownames(installed.packages())
+if (any(inatalled_libs_mental_health==F)) {
+  install.packages(libs_mental_health[!inatalled_libs_mental_health])
+}
+
+#load libraries
+
+invisible(lapply(libs_mental_health, library, character.only=T))
+
+
+```
+
+```{r googledrive downloading data, include=FALSE}
+
+ drive_auth(#email = "guest360@aphrc.org"
+           )
+
+  #drive_user()
+
+  mental_file_id <- drive_find(shared_drive = c(shared_drive_find(pattern = "Data Science Programs")$id),
+           q = c("name contains 'African_authors_detailed_list (2) (1).xlsx'")) #search for a specific set of shared drives, use the query string q
+
+  mental_local_download <- drive_download(mental_file_id$id, overwrite = TRUE)
+  
+```
+
+
+```{r reading data, include=FALSE}
+
+  mental_health_publications <- read_excel(paste0(mental_local_download$local_path), sheet = "African_authors_detailed_list (")
+  
+```
+
+
+```{r cleaning data}
+
+mental_health_publications_final <- mental_health_publications%>%
+  janitor::clean_names()%>%
+  distinct(source_title, .keep_all = TRUE)%>%
+  filter(str_detect(source_title, "psychosis|depression|anxiety") |
+         str_detect(source_fields_of_study,  paste(c("psychosis", "depression", "anxiety", "longitudinal"),collapse = '|')))
+
+readr::write_csv(mental_health_publications_final,"mental_health_publications_final.csv", na="")
+
+```
+
+
+
