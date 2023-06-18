@@ -234,9 +234,9 @@ sero_final <- sero%>%
 ```
 
 
-```{r sero final clean data, results="hide", include=FALSE}
+```{r sero final raw data, results="hide", include=FALSE}
 
-sero_final_clean <- sero_final%>%
+sero_final_raw <- sero_final%>%
                mutate(
       across(c(q12_medical_attention, q12_miss_work, q12_hospitalized, q14_hhm_medical_attention, q14_hhm_miss_work, q14_hhm_hospitalized),
                     ~ fct_recode(.x, "No Symptoms" = "NIU (not in universe)")), #change factor level "NIU (not in universe)" to "No Symptoms"
@@ -269,7 +269,7 @@ sero_final_clean <- sero_final%>%
 
 #Principal component analysis on socio economic variables
 
-ses_df <- sero_final_clean%>%
+ses_df <- sero_final_raw%>%
   dplyr::select(studyid, q17_electricity:q17_clock, q17_floor_type, q17_wall_type, q17_roof_type, q17_fuel_type, q17_toilet_type)%>%
   mutate(across(c(q17_electricity:q17_clock), ~ fct_rev(.x)))%>%
   mutate(q17_floor_type = factor(q17_floor_type, levels = c("earth/sand", "cement","other")))%>%
@@ -288,9 +288,8 @@ pca_summ <- summary(ses_pca)
 print(pca_summ)
 
 
-#The first principal component explains the largest proportion of the total variance and it is used as the wealth index to represent the 
-#household's wealth
-ses_index <- ses_pca$x[, 1, drop=TRUE]
+#The first principal component explains the largest proportion of the total variance and it is used as the wealth index to represent #the household's wealth
+ses_scores <- ses_pca$x[, 1, drop=TRUE]
 
 loadings <- pca_summ$rotation[, 1, drop=TRUE]
 loadings
@@ -315,17 +314,23 @@ print(ses_pc_plot)
 
 ```
 
-```{r sero final data for analysis, results="hide", include=FALSE}
+```{r sero final clean data, results="hide", include=FALSE}
 
-sero_final_clean <- (sero_final_clean%>%
+sero_final_clean <- sero_final_raw%>%
                     left_join(ses_df%>%   
-                       mutate(ses_index = ses_index)%>%
-                         dplyr::select(studyid, ses_index), by = c("studyid" = "studyid"))%>%
+                       mutate(ses_scores = ses_scores)%>%
+                         dplyr::select(studyid, ses_scores), by = c("studyid" = "studyid"))%>%
+                      mutate(ses_index = cut(ses_scores, breaks = 5, 
+                                             labels = c("Quntile1", "Quntile2", "Quntile3", "Quntile4", "Quntile5")))%>%
                        labelled::set_variable_labels(#labeling created variables
+     ses_scores = "Socio-economic scores",
      ses_index = "Socio-economic index"
    )
-	)
+	
+```
 
+
+```{r sero final data for analysis, results="hide", include=FALSE}
 # make dataset with variables for descriptive and inferential statistics
 sero_final_analysis <- sero_final_clean%>%
   dplyr::select( #socio-demographics
@@ -787,13 +792,13 @@ The results are presented in narrative and summary tables. Statistical significa
   
 ```
 
-```{r ses index ggplot histogram, fig.width=10, fig.height=6}
+```{r ses scores ggplot histogram, fig.width=10, fig.height=6}
 
 sero_final_clean%>%
-  dplyr::select(ses_index)%>%
-  ggplot(aes(x = ses_index))+ 
+  dplyr::select(ses_scores)%>%
+  ggplot(aes(x = ses_scores))+ 
   geom_histogram(bins = 50, color = "black", fill = "gray") +
-  geom_vline(aes(xintercept = mean(ses_index, na.rm=TRUE)), 
+  geom_vline(aes(xintercept = mean(ses_scores, na.rm=TRUE)), 
              linetype = "dashed", size = 0.6)+
   scale_x_continuous(n.breaks = 10)
 
@@ -804,17 +809,16 @@ sero_final_clean%>%
 
 ```
 
-```{r ses index ggplot histogram and density, fig.width=10, fig.height=6}
+```{r ses scores ggplot histogram and density, fig.width=10, fig.height=6}
 
 sero_final_clean%>%
-  dplyr::select(ses_index)%>%
-  ggplot(aes(x = ses_index))+ 
+  dplyr::select(ses_scores)%>%
+  ggplot(aes(x = ses_scores))+ 
   geom_histogram(aes(y = ..density..), bins = 50, color = "black", fill = "white") +
   geom_density(alpha = 0.2, fill = "#FF6666") +
-  geom_vline(aes(xintercept = mean(ses_index, na.rm=TRUE)), 
+  geom_vline(aes(xintercept = mean(ses_scores, na.rm=TRUE)), 
              linetype = "dashed", size = 0.6)+
   scale_x_continuous(n.breaks = 10)
-
 
 ```
 
