@@ -1,15 +1,15 @@
 ---
-title: "African_authors_detailed_list - Mental Health"
+title: "African_authors_detailed_list - Mental Health Screen tool"
 author: "Reinpeter"
 date: "`r Sys.Date()`"
 output:
-  word_document: 
-    number_sections: yes
-  pdf_document:
-    number_sections: yes
   html_document:
     toc: yes
     toc_depth: 4
+    number_sections: yes
+  pdf_document:
+    number_sections: yes
+  word_document: 
     number_sections: yes
 ---
 
@@ -33,7 +33,8 @@ setwd(".")
 ```{r loading relevant packages, include=FALSE}
 
 #library we need
-libs_mental_health <- c("googledrive", "tidyverse", "janitor", "knitr", "readxl")
+libs_mental_health <- c("googledrive", "tidyverse", "janitor", "knitr", "readxl", "DiagrammeR", "DiagrammeRsvg",
+                        "rsvg")
 
 #install missing libraries
 
@@ -57,9 +58,13 @@ invisible(lapply(libs_mental_health, library, character.only=T))
   #drive_user()
 
   mental_file_id <- drive_find(shared_drive = c(shared_drive_find(pattern = "Data Science Programs")$id),
-           q = c("name contains 'African_authors_detailed_list (2) (1).xlsx'")) #search for a specific set of shared drives, use the query string q
+           q = c("name contains 'Mental Health'",
+                 "mimeType = 'application/vnd.google-apps.shortcut'")) #search for a specific set of shared drives, use the query string q
 
-  mental_local_download <- drive_download(mental_file_id$id, overwrite = TRUE)
+  list_files_shortcut_folder <- drive_ls(path = mental_file_id$id, q = c("name contains 'African_authors_detailed_list (2) (1).xlsx'"))
+  
+  
+  mental_local_download <- drive_download(list_files_shortcut_folder$id, overwrite = TRUE)
   
 ```
 
@@ -71,15 +76,210 @@ invisible(lapply(libs_mental_health, library, character.only=T))
 ```
 
 
-```{r cleaning data}
+```{r distinct titles, include=FALSE}
 
-mental_health_publications_final <- mental_health_publications%>%
+mental_health_publications_distinct <- mental_health_publications%>%
   janitor::clean_names()%>%
-  distinct(source_title, .keep_all = TRUE)%>%
-  filter(str_detect(source_title, "psychosis|depression|anxiety") |
-         str_detect(source_fields_of_study,  paste(c("psychosis", "depression", "anxiety", "longitudinal"),collapse = '|')))
+  distinct(source_title, .keep_all = TRUE)
+
+```
+
+
+```{r inclusion data}
+
+mental_health_publications_final <- mental_health_publications_distinct%>%
+  filter(str_detect(source_title, regex("psychosis|depression|anxiety|\\bmental health disorders\\b|\\bmental disorders\\b|
+                                        \\bmental health disorder\\b|\\bmental disorder\\b",
+                                        ignore_case = TRUE)) |
+         str_detect(source_fields_of_study,  regex(paste(c("psychosis", "depression", "anxiety",
+                                                           "\\bmental health disorders\\b","\\bmental disorders\\b",
+                                                         "\\bmental health disorder\\b","\\bmental disorder\\b"),
+                                                         collapse = '|'),
+                                        ignore_case = TRUE) )
+         )
 
 readr::write_csv(mental_health_publications_final,"mental_health_publications_final.csv", na="")
+
+```
+
+
+```{r longitudinal cross sectional}
+
+longitudinal_publications_final <- mental_health_publications_final%>%
+  filter(str_detect(source_title, regex("longitudinal", ignore_case = TRUE)) |
+         str_detect(source_fields_of_study,  regex("longitudinal", ignore_case = TRUE) )
+         )
+
+cross_sectional_publications_final <- mental_health_publications_final%>%
+  filter(!str_detect(source_title, regex("longitudinal", ignore_case = TRUE)) &
+         !str_detect(source_fields_of_study,  regex("longitudinal", ignore_case = TRUE) )
+         )
+
+```
+
+
+```{r longitudinal psychosis depression anxiety data}
+
+longitudinal_psychosis_publications_final <- longitudinal_publications_final%>%
+  filter(str_detect(source_title, regex("psychosis", ignore_case = TRUE)) |
+         str_detect(source_fields_of_study,  regex("psychosis", ignore_case = TRUE) )
+         )
+
+longitudinal_depression_publications_final <- longitudinal_publications_final%>%
+  filter(str_detect(source_title, regex("depression", ignore_case = TRUE)) |
+         str_detect(source_fields_of_study,  regex("depression", ignore_case = TRUE) )
+         )
+
+longitudinal_anxiety_publications_final <- longitudinal_publications_final%>%
+  filter(str_detect(source_title, regex("anxiety", ignore_case = TRUE)) |
+         str_detect(source_fields_of_study,  regex("anxiety", ignore_case = TRUE) )
+         )
+
+```
+
+
+```{r cross-sectional psychosis depression anxiety data}
+
+cross_sectional_psychosis_publications_final <- cross_sectional_publications_final%>%
+  filter(str_detect(source_title, regex("psychosis", ignore_case = TRUE)) |
+         str_detect(source_fields_of_study,  regex("psychosis", ignore_case = TRUE) )
+         )
+
+cross_sectional_depression_publications_final <- cross_sectional_publications_final%>%
+  filter(str_detect(source_title, regex("depression", ignore_case = TRUE)) |
+         str_detect(source_fields_of_study,  regex("depression", ignore_case = TRUE) )
+         )
+
+cross_sectional_anxiety_publications_final <- cross_sectional_publications_final%>%
+  filter(str_detect(source_title, regex("anxiety", ignore_case = TRUE)) |
+         str_detect(source_fields_of_study,  regex("anxiety", ignore_case = TRUE) )
+         )
+
+```
+
+
+```{r psychosis depression anxiety data}
+
+psychosis_publications_final <- mental_health_publications_final%>%
+  filter(str_detect(source_title, regex("psychosis", ignore_case = TRUE)) |
+         str_detect(source_fields_of_study,  regex("psychosis", ignore_case = TRUE) )
+         )
+
+depression_publications_final <- mental_health_publications_final%>%
+  filter(str_detect(source_title, regex("depression", ignore_case = TRUE)) |
+         str_detect(source_fields_of_study,  regex("depression", ignore_case = TRUE) )
+         )
+
+anxiety_publications_final <- mental_health_publications_final%>%
+  filter(str_detect(source_title, regex("anxiety", ignore_case = TRUE)) |
+         str_detect(source_fields_of_study,  regex("anxiety", ignore_case = TRUE) )
+         )
+
+```
+
+
+```{r flow chart}
+
+data <- list(a=nrow(mental_health_publications),
+             b=nrow(mental_health_publications_distinct), c=nrow(mental_health_publications_final),
+             d= nrow(cross_sectional_publications_final), e = nrow(longitudinal_publications_final),
+             f = nrow(cross_sectional_depression_publications_final), g = nrow(cross_sectional_anxiety_publications_final),
+             h = nrow(cross_sectional_psychosis_publications_final),
+             i = nrow(longitudinal_depression_publications_final), j = nrow(longitudinal_anxiety_publications_final),
+             k = nrow(longitudinal_psychosis_publications_final))
+
+
+g1 <- DiagrammeR::grViz("
+digraph graph2 {
+
+graph [layout = dot]
+
+# node definitions
+node [shape = rectangle, width = 4.6, fillcolor = Linen]
+
+data1 [label = 'Data', fillcolor = Beige]
+a [label = '@@1']
+b [label = '@@2']
+
+subgraph cluster_filter {
+node [shape=box];
+style=dashed;
+  {{ rank = same; filterby1 filterby2}}
+
+filter [label = 'Filter Dataset']
+filterby1 [label = 'Filter Title by\n Psychosis or Depression\n or Anxiety or\n Mental Health Disorder(s) or\n Mental Disorder(s)',
+width = 3]
+filterby2 [label = 'Filter Field of Study by\n Psychosis or Depression\n or Anxiety or\n Mental Health Disorder(s) or\n Mental Disorder(s)',
+width = 3]
+}
+
+c [label = '@@3', shape = rectangle, width = 4.6]
+d [label = '@@4', width = 3, shape=box]
+e [label = '@@5', width = 3, shape=box]
+
+
+f [label = '@@6', width = 2.5, shape=box]
+g [label = '@@7', width = 2.5, shape=box]
+h [label = '@@8', width = 2.5, shape=box]
+
+i [label = '@@9', width = 2.5, shape=box]
+j [label = '@@10', width = 2.5, shape=box]
+k [label = '@@11', width = 2.5, shape=box]
+
+
+# edge definitions with the node IDs
+
+data1 -> a -> b -> filter
+
+filter -> filterby1 [style = dashed]
+
+filter -> filterby2 [style = dashed]
+
+filterby1 -> filterby2 [minlen=2, label = 'or', dir=both ]
+
+{filterby1, filterby2} -> c [style = dashed, minlen=2]
+
+c -> {d, e}
+
+d -> e[minlen=4, style=invis];
+  {{ rank = same; d e }}
+
+d -> {f, g, h}
+
+e -> {i, j, k}
+
+f -> g[style=invis]
+g -> h[style=invis]
+
+i -> j[style=invis]
+j -> k[style=invis]
+
+
+}
+
+[1]: paste0('Extracted African Authors Detailed List (n = ', data$a, ')')
+[2]: paste0('Remove Dupliates on Title (n = ', data$b, ')')
+[3]: paste0('Distinct Papers  (n = ', data$c, ')')
+[4]: paste0('Cross-Sectional  (n = ', data$d, ')')
+[5]: paste0('Longitudinal  (n = ', data$e, ')')
+[6]: paste0('Depression  (n = ', data$f, ')')
+[7]: paste0('Anxiety  (n = ', data$g, ')')
+[8]: paste0('Psychosis  (n = ', data$h, ')')
+[9]: paste0('Depression  (n = ', data$i, ')')
+[10]: paste0('Anxiety  (n = ', data$j, ')')
+[11]: paste0('Psychosis  (n = ', data$k, ')')
+
+")
+
+g1
+
+```
+
+
+```{r}
+
+  g1%>%
+    export_svg %>% charToRaw %>% rsvg_png(file = "graph.png" )
 
 ```
 
