@@ -88,15 +88,40 @@ mental_health_publications_distinct <- mental_health_publications%>%
 ```{r inclusion data}
 
 mental_health_publications_final <- mental_health_publications_distinct%>%
-  filter(str_detect(source_title, regex("psychosis|depression|anxiety|\\bmental health disorders\\b|\\bmental disorders\\b|
+  filter(str_detect(source_title, regex("psychosis|depression|anxiety|depressive|depressed|
+                                      \\bsocial phobia\\b|phobia|\\bpanic disorder\\b|agoraphobia|
+                                       \\bmental health disorders\\b|\\bmental disorders\\b|
                                         \\bmental health disorder\\b|\\bmental disorder\\b",
                                         ignore_case = TRUE)) |
-         str_detect(source_fields_of_study,  regex(paste(c("psychosis", "depression", "anxiety",
-                                                           "\\bmental health disorders\\b","\\bmental disorders\\b",
-                                                         "\\bmental health disorder\\b","\\bmental disorder\\b"),
+         str_detect(source_fields_of_study,  regex(paste(c("psychosis", "depression", "anxiety","depressive" , "depressed",
+                                                    "\\bsocial phobia\\b", "phobia", "\\bpanic disorder\\b", "agoraphobia",
+                                                    "\\bmental health disorders\\b","\\bmental disorders\\b",
+                                                    "\\bmental health disorder\\b","\\bmental disorder\\b"),
                                                          collapse = '|'),
                                         ignore_case = TRUE) )
          )
+
+```
+
+
+```{r exclusion data}
+
+mental_health_publications_exclusion_final <- mental_health_publications_distinct%>%
+  filter(!str_detect(source_title, regex("psychosis|depression|anxiety|depressive|depressed|
+                                        \\bsocial phobia\\b|phobia|\\bpanic disorder\\b|agoraphobia|
+                                       \\bmental health disorders\\b|\\bmental disorders\\b|
+                                        \\bmental health disorder\\b|\\bmental disorder\\b",
+                                        ignore_case = TRUE)) &
+         !str_detect(source_fields_of_study,  regex(paste(c("psychosis", "depression", "anxiety","depressive" , "depressed",
+                                                    "\\bsocial phobia\\b", "phobia", "\\bpanic disorder\\b", "agoraphobia",                                                     "\\bmental health disorders\\b","\\bmental disorders\\b",
+                                                  "\\bmental health disorder\\b","\\bmental disorder\\b"),
+                                                         collapse = '|'),
+                                        ignore_case = TRUE) )
+         )
+
+```
+
+```{r saving inclusion and exclusion}
 
 readr::write_csv(mental_health_publications_final,"mental_health_publications_final.csv", na="")
 
@@ -106,13 +131,17 @@ readr::write_csv(mental_health_publications_final,"mental_health_publications_fi
 ```{r longitudinal cross sectional}
 
 longitudinal_publications_final <- mental_health_publications_final%>%
-  filter(str_detect(source_title, regex("longitudinal", ignore_case = TRUE)) |
-         str_detect(source_fields_of_study,  regex("longitudinal", ignore_case = TRUE) )
+  filter(str_detect(source_title, regex("longitudinal|\\brandomised controlled trial\\b|\\brandomized controlled trial\\b",
+                                        ignore_case = TRUE)) |
+         str_detect(source_fields_of_study, regex("longitudinal|\\brandomised controlled trial\\b|\\brandomized controlled trial\\b",
+                                                   ignore_case = TRUE) )
          )
 
 cross_sectional_publications_final <- mental_health_publications_final%>%
-  filter(!str_detect(source_title, regex("longitudinal", ignore_case = TRUE)) &
-         !str_detect(source_fields_of_study,  regex("longitudinal", ignore_case = TRUE) )
+  filter(!str_detect(source_title, regex("longitudinal|\\brandomised controlled trial\\b|\\brandomized controlled trial\\b",
+                                         ignore_case = TRUE)) &
+         !str_detect(source_fields_of_study, regex("longitudinal|\\brandomised controlled trial\\b|\\brandomized controlled trial\\b",
+                                                   ignore_case = TRUE) )
          )
 
 ```
@@ -126,13 +155,15 @@ longitudinal_psychosis_publications_final <- longitudinal_publications_final%>%
          )
 
 longitudinal_depression_publications_final <- longitudinal_publications_final%>%
-  filter(str_detect(source_title, regex("depression", ignore_case = TRUE)) |
-         str_detect(source_fields_of_study,  regex("depression", ignore_case = TRUE) )
+  filter(str_detect(source_title, regex("depression|depressive|depressed", ignore_case = TRUE)) |
+         str_detect(source_fields_of_study,  regex("depression|depressive|depressed", ignore_case = TRUE) )
          )
 
 longitudinal_anxiety_publications_final <- longitudinal_publications_final%>%
-  filter(str_detect(source_title, regex("anxiety", ignore_case = TRUE)) |
-         str_detect(source_fields_of_study,  regex("anxiety", ignore_case = TRUE) )
+  filter(str_detect(source_title, regex("anxiety|\\bsocial phobia\\b|phobia|\\bpanic disorder\\b|agoraphobia",
+                                        ignore_case = TRUE)) |
+         str_detect(source_fields_of_study,  regex("anxiety|\\bsocial phobia\\b|phobia|\\bpanic disorder\\b|agoraphobia",
+                                                   ignore_case = TRUE) )
          )
 
 ```
@@ -146,33 +177,15 @@ cross_sectional_psychosis_publications_final <- cross_sectional_publications_fin
          )
 
 cross_sectional_depression_publications_final <- cross_sectional_publications_final%>%
-  filter(str_detect(source_title, regex("depression", ignore_case = TRUE)) |
-         str_detect(source_fields_of_study,  regex("depression", ignore_case = TRUE) )
+  filter(str_detect(source_title, regex("depression|depressive|depressed", ignore_case = TRUE)) |
+         str_detect(source_fields_of_study,  regex("depression|depressive|depressed", ignore_case = TRUE) )
          )
 
 cross_sectional_anxiety_publications_final <- cross_sectional_publications_final%>%
-  filter(str_detect(source_title, regex("anxiety", ignore_case = TRUE)) |
-         str_detect(source_fields_of_study,  regex("anxiety", ignore_case = TRUE) )
-         )
-
-```
-
-
-```{r psychosis depression anxiety data}
-
-psychosis_publications_final <- mental_health_publications_final%>%
-  filter(str_detect(source_title, regex("psychosis", ignore_case = TRUE)) |
-         str_detect(source_fields_of_study,  regex("psychosis", ignore_case = TRUE) )
-         )
-
-depression_publications_final <- mental_health_publications_final%>%
-  filter(str_detect(source_title, regex("depression", ignore_case = TRUE)) |
-         str_detect(source_fields_of_study,  regex("depression", ignore_case = TRUE) )
-         )
-
-anxiety_publications_final <- mental_health_publications_final%>%
-  filter(str_detect(source_title, regex("anxiety", ignore_case = TRUE)) |
-         str_detect(source_fields_of_study,  regex("anxiety", ignore_case = TRUE) )
+  filter(str_detect(source_title, regex("anxiety|\\bsocial phobia\\b|phobia|\\bpanic disorder\\b|agoraphobia",
+                                        ignore_case = TRUE)) |
+         str_detect(source_fields_of_study,  regex("anxiety|\\bsocial phobia\\b|phobia|\\bpanic disorder\\b|agoraphobia",
+                                                   ignore_case = TRUE) )
          )
 
 ```
@@ -207,10 +220,8 @@ style=dashed;
   {{ rank = same; filterby1 filterby2}}
 
 filter [label = 'Filter Dataset']
-filterby1 [label = 'Filter Title by\n Psychosis or Depression\n or Anxiety or\n Mental Health Disorder(s) or\n Mental Disorder(s)',
-width = 3]
-filterby2 [label = 'Filter Field of Study by\n Psychosis or Depression\n or Anxiety or\n Mental Health Disorder(s) or\n Mental Disorder(s)',
-width = 3]
+filterby1 [label = 'Filter Title by\n Psychosis or\n Depression or Depressive or Depressed\n or Anxiety or Social Phobia or Phobia or\n Panic Disorder or Agoraphobia or\n Mental Health Disorder(s) or\n Mental Disorder(s)', width = 3]
+filterby2 [label = 'Filter Field of Study by\n Psychosis or\n Depression or Depressive or Depressed\n or Anxiety or Social Phobia or Phobia or\n Panic Disorder or Agoraphobia or\n Mental Health Disorder(s) or\n Mental Disorder(s)', width = 3]
 }
 
 c [label = '@@3', shape = rectangle, width = 4.6]
