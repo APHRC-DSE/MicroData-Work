@@ -33,7 +33,7 @@ setwd(".")
 ```{r loading relevant packages, include=FALSE}
 
 #library we need
-libs_mental_health <- c("googledrive", "tidyverse", "janitor", "knitr", "readxl", "DiagrammeR", "DiagrammeRsvg",
+libs_mental_health <- c("googledrive", "tidyverse", "janitor", "knitr", "readxl", "writexl", "DiagrammeR", "DiagrammeRsvg",
                         "rsvg")
 
 #install missing libraries
@@ -87,7 +87,7 @@ mental_health_publications_distinct <- mental_health_publications%>%
 
 ```{r inclusion data}
 
-mental_health_publications_final <- mental_health_publications_distinct%>%
+mental_health_publications_inclusion_final <- mental_health_publications_distinct%>%
   filter(str_detect(source_title, regex("psychosis|depression|anxiety|depressive|depressed|
                                       \\bsocial phobia\\b|phobia|\\bpanic disorder\\b|agoraphobia|
                                        \\bmental health disorders\\b|\\bmental disorders\\b|
@@ -123,21 +123,25 @@ mental_health_publications_exclusion_final <- mental_health_publications_distinc
 
 ```{r saving inclusion and exclusion}
 
-readr::write_csv(mental_health_publications_final,"mental_health_publications_final.csv", na="")
+#readr::write_csv(mental_health_publications_final,"mental_health_publications_final.csv", na="")
+
+writexl::write_xlsx(list(inclusion = mental_health_publications_inclusion_final,
+                         exclusion = mental_health_publications_exclusion_final), "mental_health_publications_inclusion_exclusion_final.xlsx")
+
 
 ```
 
 
 ```{r longitudinal cross sectional}
 
-longitudinal_publications_final <- mental_health_publications_final%>%
+longitudinal_publications_final <- mental_health_publications_inclusion_final%>%
   filter(str_detect(source_title, regex("longitudinal|\\brandomised controlled trial\\b|\\brandomized controlled trial\\b",
                                         ignore_case = TRUE)) |
          str_detect(source_fields_of_study, regex("longitudinal|\\brandomised controlled trial\\b|\\brandomized controlled trial\\b",
                                                    ignore_case = TRUE) )
          )
 
-cross_sectional_publications_final <- mental_health_publications_final%>%
+cross_sectional_publications_final <- mental_health_publications_inclusion_final%>%
   filter(!str_detect(source_title, regex("longitudinal|\\brandomised controlled trial\\b|\\brandomized controlled trial\\b",
                                          ignore_case = TRUE)) &
          !str_detect(source_fields_of_study, regex("longitudinal|\\brandomised controlled trial\\b|\\brandomized controlled trial\\b",
