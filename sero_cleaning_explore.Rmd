@@ -264,13 +264,15 @@ sero_final_raw <- sero_final%>%
 
 ```
 
+# **Principal component analysis**
 
 ```{r pca socio economic status, results="hide", fig.width=10, fig.height=6}
 
 #Principal component analysis on socio economic variables
 
 ses_df <- sero_final_raw%>%
-  dplyr::select(studyid, q17_electricity:q17_clock, q17_floor_type, q17_wall_type, q17_roof_type, q17_fuel_type, q17_toilet_type)%>%
+  dplyr::select(studyid, q17_electricity:q17_clock, q17_floor_type, q17_wall_type, q17_roof_type, q17_fuel_type,
+                q17_toilet_type)%>%
   mutate(across(c(q17_electricity:q17_clock), ~ fct_rev(.x)))%>%
   mutate(q17_floor_type = factor(q17_floor_type, levels = c("earth/sand", "cement","other")))%>%
   mutate(q17_fuel_type = factor(q17_fuel_type, levels = c("other", "wood","kerosene", "charcoal", "lpg/natural gas","electricity")))%>%
@@ -311,7 +313,6 @@ ses_pc_plot <- fviz_pca_var(ses_pca,
 
 print(ses_pc_plot)
 
-
 ```
 
 ```{r sero final clean data, results="hide", include=FALSE}
@@ -321,19 +322,21 @@ sero_final_clean <- sero_final_raw%>%
                        mutate(ses_scores = ses_scores)%>%
                          dplyr::select(studyid, ses_scores), by = c("studyid" = "studyid"))%>%
                       mutate(ses_index = cut(ses_scores, breaks = 5, 
-                                             labels = c("Quntile1", "Quntile2", "Quntile3", "Quntile4", "Quntile5")))%>%
+                                             labels = c("Quintile1", "Quintile2", "Quintile3", "Quintile4", "Quintile5")))%>%
                        labelled::set_variable_labels(#labeling created variables
      ses_scores = "Socio-economic scores",
      ses_index = "Socio-economic index"
    )
-	
+
 ```
 
 
 ```{r sero final data for analysis, results="hide", include=FALSE}
 # make dataset with variables for descriptive and inferential statistics
 sero_final_analysis <- sero_final_clean%>%
-  dplyr::select( #socio-demographics
+  dplyr::select( #consent, status
+    consent, q5_status,
+    #socio-demographics
     spikepos, replace, q9_location, q8_gender, q6_education_level, age_group_new, q7_age_new, q6_religion,
                 #health symptoms of participants
     q11_no_symptoms,q11_fever:q11_lost_smell, q11_muscular_pain:q11_joint_pain, q12_medical_attention, q12_miss_work, q12_hospitalized,
@@ -360,10 +363,10 @@ save(sero_final_clean, sero_final_analysis, file = "sero_results_data_clean_anal
 
 #saving as .csv
 readr::write_csv(sero_final_clean%>%
-                   dplyr::select(-c(q7_age_new, age_group_new, ses_index)),"sero_results_data_clean.csv", na="")
+                   dplyr::select(-c(q7_age_new, age_group_new, ses_scores, ses_index)),"sero_results_data_clean.csv", na="")
 
 haven::write_dta(sero_final_clean%>%
-                   dplyr::select(-c(q7_age_new, age_group_new, ses_index)),"sero_results_data_clean.dta")
+                   dplyr::select(-c(q7_age_new, age_group_new, ses_scores, ses_index)),"sero_results_data_clean.dta")
 
 ```
 
@@ -403,7 +406,7 @@ sero_theme <-
 
 ```{r data description}
 
-  tbl_summary(sero_final_clean%>%dplyr::select(consent, q5_status), 
+  tbl_summary(sero_final_analysis%>%dplyr::select(consent, q5_status), 
                       type = list(
                         all_dichotomous() ~ "categorical")
               , digits = list(all_categorical() ~ c(0, 1))
@@ -456,7 +459,7 @@ The results are presented in narrative and summary tables. Statistical significa
 
 ```{r all variable descriptives}
 
- tbl_summary(sero_final_analysis, 
+ tbl_summary(sero_final_analysis%>%dplyr::select(-c(consent, q5_status)), 
                       type = list(
                         all_dichotomous() ~ "categorical"
                         ,all_continuous() ~ "continuous2"
@@ -845,7 +848,7 @@ sero_final_clean%>%
 
 ```{r all variables by outcome variable}
 
-  tbl_summary(sero_final_analysis,
+  tbl_summary(sero_final_analysis%>%dplyr::select(-c(consent, q5_status)),
               by = spikepos,
                       type = list(
                         all_dichotomous() ~ "categorical"
@@ -865,8 +868,8 @@ sero_final_clean%>%
   bold_labels() %>%
   italicize_levels()%>%
   add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
-  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
-        ,test.args = c(blood_group) ~ list(simulate.p.value=TRUE) ) %>%
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3),
+        test.args = all_tests("fisher.test") ~ list(simulate.p.value=TRUE)) %>%
    bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
   modify_spanning_header(c("stat_1", "stat_2") ~ "**sero positive**")%>%
   modify_footnote(
@@ -928,7 +931,7 @@ sero_final_clean%>%
 
 ```{r all variables by location}
 
-  tbl_summary(sero_final_analysis,
+  tbl_summary(sero_final_analysis%>%dplyr::select(-c(consent, q5_status)),
               by = q9_location,
                       type = list(
                         all_dichotomous() ~ "categorical"
@@ -948,8 +951,8 @@ sero_final_clean%>%
   bold_labels() %>%
   italicize_levels()%>%
   add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
-  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
-        ,test.args = c(q6_religion, q17_fuel_type, blood_group) ~ list(simulate.p.value=TRUE)) %>%
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3),
+        test.args = all_tests("fisher.test") ~ list(simulate.p.value=TRUE)) %>%
    bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
   #add_overall() %>%
   #add_difference() %>% #add column for difference between two group, confidence interval, and p-value
@@ -967,7 +970,7 @@ sero_final_clean%>%
 
 ```{r all variables by gender}
 
-  tbl_summary(sero_final_analysis,
+  tbl_summary(sero_final_analysis%>%dplyr::select(-c(consent, q5_status)),
               by = q8_gender,
                       type = list(
                         all_dichotomous() ~ "categorical"
@@ -987,8 +990,8 @@ sero_final_clean%>%
   bold_labels() %>%
   italicize_levels()%>%
   add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
-  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
-        ,test.args = c(q6_religion, blood_group) ~ list(simulate.p.value=TRUE)) %>%
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3),
+        test.args = all_tests("fisher.test") ~ list(simulate.p.value=TRUE)) %>%
    bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
   #add_overall() %>%
   #add_difference() %>% #add column for difference between two group, confidence interval, and p-value
@@ -1006,7 +1009,7 @@ sero_final_clean%>%
 
 ```{r all variables by education level}
 
-  tbl_summary(sero_final_analysis,
+  tbl_summary(sero_final_analysis%>%dplyr::select(-c(consent, q5_status)),
               by = q6_education_level,
                       type = list(
                         all_dichotomous() ~ "categorical"
@@ -1026,11 +1029,8 @@ sero_final_clean%>%
   bold_labels() %>%
   italicize_levels()%>%
   add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
-  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
-        ,test.args = c(q6_religion, q10_covid_contact, q16_info_edu, q16_hand_wash, q16_face_masks, q19_lost_job,
-                       q17_floor_type, q17_wall_type, q17_fuel_type, q17_toilet_type,
-                       q18_outmigrant_member, q18_inmigrant_member, blood_group,
-                       q12_hospitalized, q14_hhm_medical_attention,q14_hhm_miss_work,q14_hhm_hospitalized) ~ list(simulate.p.value=TRUE)) %>%
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3),
+        test.args = all_tests("fisher.test") ~ list(simulate.p.value=TRUE)) %>%
    bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
   #add_overall() %>%
   #add_difference() %>% #add column for difference between two group, confidence interval, and p-value
@@ -1048,7 +1048,7 @@ sero_final_clean%>%
 
 ```{r all variables by age group}
 
-  tbl_summary(sero_final_analysis,
+  tbl_summary(sero_final_analysis%>%dplyr::select(-c(consent, q5_status)),
               by = age_group_new,
                       type = list(
                         all_dichotomous() ~ "categorical"
@@ -1068,11 +1068,8 @@ sero_final_clean%>%
   bold_labels() %>%
   italicize_levels()%>%
   add_n( statistic = "{n}", col_label = "**n**", last = FALSE, footnote = FALSE)%>% # add column with total number of non-missing observations
-  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3)
-        ,test.args = c(q6_religion, q10_covid_contact, q16_hand_wash, q16_face_masks, q19_lost_job,
-                       q17_floor_type, q17_fuel_type, q17_toilet_type,
-                       q18_outmigrant_member, q18_inmigrant_member, blood_group,
-                       q14_hhm_hospitalized) ~ list(simulate.p.value=TRUE)) %>%
+  add_p(pvalue_fun = ~style_pvalue(.x, digits = 3),
+        test.args = all_tests("fisher.test") ~ list(simulate.p.value=TRUE)) %>%
    bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
   #add_overall() %>%
   #add_difference() %>% #add column for difference between two group, confidence interval, and p-value
