@@ -777,11 +777,11 @@ kable(
 
 The quantitative data was cleaned and analysed using R version 4.2.3 (2023). 
 
-Descriptive summary statistics in form of frequency, percentage, mean and standard deviation were generated to examine socio-demographic, history of medical conditions and treatment, lifestyle history/Health behaviour, well being/quality of life and clinical and anthropometric measurements variables.
+Descriptive summary statistics in form of frequency, percentage, mean and standard deviation were generated to examine socio-demographic, history of medical conditions and treatment, lifestyle history/Health behaviour, well being/quality of life and clinical and anthropometric measurements variables in overall, diabetic and non-diabetic participants.
 
-Chi-square test and Fisher's exact test where appropriate were used for categorical data to analyze difference in proportion of socio-demographic, history of medical conditions and treatment, lifestyle history/Health behaviour, well being/quality of life and clinical and anthropometric measurements variables as a function of gender and age group. 
+Chi-square test and Fisher's exact test where appropriate were used for categorical data to analyze difference in proportion of socio-demographic, history of medical conditions and treatment, lifestyle history/Health behaviour, well being/quality of life and clinical and anthropometric measurements variables as a function of gender and age group in diabetic and non-diabetic participants.
 
-For continous data, Wilcoxon rank sum test, Welch Two Sample t-test and Kruskal-Wallis rank sum test where appropriate was used to examine the comparison of gender and age group  with various continous variables.
+For continous data, Wilcoxon rank sum test, Welch Two Sample t-test and Kruskal-Wallis rank sum test where appropriate was used to examine the comparison of gender and age group  with various continous variables in diabetic and non-diabetic participants.
 
 The results are presented in narrative and summary tables. Statistical significance was set at p<0.05
 
@@ -931,7 +931,7 @@ psych::alpha(qol_10_questions)
 ```
 
 
-## Factor 1: globalQOL
+## Factor 1: global QOL
 
 ```{r reliability factor 1 subscale}
 
@@ -942,7 +942,7 @@ psych::alpha(qol_factor_1_subscale_questions)
 
 ```
 
-## Factor 2: globalQOL
+## Factor 2: Social/Environment QOL
 
 ```{r reliability factor 2 subscale}
 
