@@ -82,8 +82,9 @@ To build the best performing classification model, We will use all relevant pred
 
 sero_logistic_drop_missing <- sero_final_analysis%>%
   mutate(across(c(spikepos, replace, q11_fever:q11_lost_smell, q13_hhm_no_symptoms, q13_hhmember_sick,
-                  q17_electricity:q17_none, q17_floor_type:q17_toilet_type, q12_hospitalized), ~ fct_rev(.x)))%>%
-  dplyr::select(-c(sample_type, q11_pain, q11_no_symptoms, q23_sampling, q7_age_new, 
+                  q17_electricity:q17_none, q17_floor_type:q17_toilet_type, q18_outmigrant_member, q18_inmigrant_member,
+                  q16_info_edu:q16_sanitizers), ~ fct_rev(.x)))%>%
+  dplyr::select(-c(consent, q5_status, sample_type, q11_pain, q11_no_symptoms, q23_sampling, q7_age_new, 
                    #age_group_new,
                    q13_hhm_pain, q13_hhm_no_symptoms, q17_electricity:q17_none, q17_floor_type:q17_toilet_type))%>%
   drop_na()
@@ -274,7 +275,8 @@ In penalized regression, you need to specify a constant **lambda** to adjust the
 x_penalized <- stats::model.matrix(spikepos~., train_sero)[,-1]
 
 # Convert the outcome (class) to a numerical variable
-y_penalized <- ifelse(train_sero$spikepos == "yes", 1, 0)
+y_penalized <- train_sero$spikepos
+  #ifelse(train_sero$spikepos == "yes", 1, 0)
 
 x_test <- stats::model.matrix(spikepos ~., test_sero)[,-1]
 
@@ -578,7 +580,9 @@ auc_elastic_lambda_lse <- bayestestR::area_under_curve(roc_elastic_lambda_lse$Sp
 # Set seed for reproducibility
 set.seed(1111)
 
-rf_model <- randomForest(spikepos ~., data = train_sero, importance = FALSE, mtry = round(ncol(train_sero)/3,0))
+rf_model <- randomForest(x=x_penalized, y = y_penalized, importance = FALSE 
+                         #,mtry = round(ncol(x_penalized)/3,0)
+                         )
 rf_model
 #summary(rf_model)
 
@@ -587,7 +591,7 @@ rf_model
 ```{r random forest model confussion matrix ROC curve}
 
 #Fitting with test data
-test_predictions$rf_prediction <- predict(rf_model, test_sero, type = "response" #“prob”, “response”, “vote”
+test_predictions$rf_prediction <- predict(rf_model, x_test, type = "response" #“prob”, “response”, “vote”
                                           )
 
 #Confussion matrix
@@ -595,7 +599,7 @@ con_rf_model <-caret::confusionMatrix(test_predictions$rf_prediction, test_sero$
 #con_rf_model
 
 roc_rf_model <- performance::performance_roc(x= c(as.numeric(test_sero$spikepos)-1),
-                              predictions = c(as.numeric(predict(rf_model, test_sero, type = "response"))-1) )
+                              predictions = c(as.numeric(predict(rf_model, x_test, type = "response"))-1) )
 #package see required to plot ROC curves
 #plot(roc_rf_model)
 
@@ -730,8 +734,8 @@ ggplot(train_importance,
 
 ```{r Variable Importance rank, fig.width=10, fig.height=6}
 
-top_n <- 5
-total_n <- 20
+top_n <- 10
+total_n <- 30
 
 ## Mostly frequently identified variables
 varfreq_df <- train_importance%>% 
@@ -739,13 +743,15 @@ varfreq_df <- train_importance%>%
   mutate(pos = 1:n())%>% 
   ungroup()%>% 
   mutate(pos_new=ifelse(pos<=top_n, pos, top_n+1),
-         new_terms=fct_reorder(variables, pos)
+         new_terms=fct_reorder(variables, -Overall, .fun=mean)
 	)%>%
+  filter(as.numeric(new_terms) <= total_n)%>%
   group_by(new_terms, pos_new)%>%
   count()%>% 
+  ungroup()%>% 
   droplevels()
 
-ggplot(varfreq_df, aes(x=pos_new, y=fct_reorder(new_terms, -pos_new), fill=n))+
+ggplot(varfreq_df, aes(x=pos_new, y=fct_reorder(new_terms, -pos_new, .fun=mean), fill=n))+
   geom_tile(color="black")+
   scale_fill_distiller(palette = "Greens", direction=1)+
   scale_y_discrete(expand=c(0,0))+
@@ -764,6 +770,27 @@ ggplot(varfreq_df, aes(x=pos_new, y=fct_reorder(new_terms, -pos_new), fill=n))+
 ```
 
 
+# Model Estimates
+
+## Logistic regression
+
+```{r}
+
+tbl_regression(logistic_model, exponentiate = TRUE, 
+    pvalue_fun = ~style_pvalue(.x, digits = 3)
+  )%>%
+  #add_global_p()%>% # add global p-value for categorical variables
+  bold_p(t= 0.05) %>% # bold p-values under a given threshold (default 0.05)
+  bold_labels() %>%
+  italicize_levels()%>% 
+  modify_header(label = "**Logistic regression**")%>% # update the column header
+  add_significance_stars(
+    pattern = "{estimate} ({conf.low}-{conf.high}){stars}",
+    hide_ci = TRUE, hide_se = TRUE , hide_p = FALSE) %>%
+  modify_header(estimate ~ "**AOR (95% CI)**") %>%
+  modify_footnote(estimate ~ "AOR = Adjusted Odds Ratio, CI = Confidence Interval", abbreviation = TRUE)
+
+```
 
 
 
