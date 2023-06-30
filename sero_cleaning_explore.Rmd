@@ -79,7 +79,7 @@ theme_gtsummary_compact()
   #drive_user()
 
   sero_file_id <- drive_find(shared_drive = c(shared_drive_find(pattern = "Data Science Programs")$id),
-           q = c("name contains 'sero_results_data.dta'")) #search for a specific set of shared drives, use the query string q
+           q = c("name = 'sero_results_data.dta'")) #search for a specific set of shared drives, use the query string q
 
   sero_local_download <- drive_download(sero_file_id$id, overwrite = TRUE)
   
@@ -183,7 +183,7 @@ readr::write_csv(sero,"sero_results_data.csv", na="")
 #downloading data from shared google drive
 
 scan_report_id <- drive_find(shared_drive = c(shared_drive_find()$id),
-           q = c("name contains 'ScanReport_sero.xlsx'")) #search for a specific set of shared drives, use the query string q
+           q = c("name = 'ScanReport_sero.xlsx'")) #search for a specific set of shared drives, use the query string q
 
 scan_report_local_download <- drive_download(scan_report_id$id, overwrite = TRUE)
 
