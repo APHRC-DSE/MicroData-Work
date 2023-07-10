@@ -1,5 +1,5 @@
 ---
-title: "African_authors_detailed_list- Mental Health Screen tool"
+title: "African_authors_detailed_list - Mental Health Screen tool"
 author: "Reinpeter"
 date: "`r Sys.Date()`"
 output:
@@ -83,7 +83,7 @@ invisible(lapply(libs_mental_health, library, character.only=T))
 
 mental_health_publications_distinct <- mental_health_publications%>%
   mutate(source_title = str_to_title(source_title)
-         ,source_title = gsub("\\.$", "", source_title) #remove period at end of title
+         #,source_title = gsub(".", "", source_title, fixed = TRUE)
          )%>%
   distinct(source_title, .keep_all = TRUE)
 
@@ -149,13 +149,49 @@ longitudinal_publications_final <- mental_health_publications_inclusion_final%>%
          str_detect(source_fields_of_study, regex("longitudinal|\\bcohort study\\b",ignore_case = TRUE) )
          )
 
-cross_sectional_publications_final <- mental_health_publications_inclusion_final%>%
-  filter(!str_detect(source_title, regex("longitudinal|\\bcohort study\\b", ignore_case = TRUE)) &
+reviews_publications_final <- mental_health_publications_inclusion_final%>%
+  filter(str_detect(source_title, regex("\\bsystematic review\\b|\\bmeta\\b|\\breview\\b|\\bcase report\\b|\\bcase reports\\b|\\boverview\\b|\\bliterature\\b", ignore_case = TRUE)) |
+         str_detect(source_fields_of_study, regex("\\bsystematic review\\b|\\bmeta\\b|\\breview\\b|\\bcase report\\b|\\bcase reports\\b|\\boverview\\b|\\bliterature\\b", ignore_case = TRUE) ),
+         !str_detect(source_title, regex("longitudinal|\\bcohort study\\b", ignore_case = TRUE)) &
          !str_detect(source_fields_of_study, regex("longitudinal|\\bcohort study\\b", ignore_case = TRUE) )
+         )
+
+randomized_trials_publications_final <- mental_health_publications_inclusion_final%>%
+  filter(str_detect(source_title, regex("placebo|\\bblind\\b|\\brandomised controlled trial\\b|\\brandomized controlled trial\\b",
+                                        ignore_case = TRUE)) |
+         str_detect(source_fields_of_study, regex("placebo|\\bblind\\b|\\brandomised controlled trial\\b|\\brandomized controlled trial\\b",ignore_case = TRUE) ),
+         !str_detect(source_title, regex("\\bsystematic review\\b|\\bmeta\\b|\\breview\\b|\\bcase report\\b|\\bcase reports\\b|\\boverview\\b|\\bliterature\\b|longitudinal|\\bcohort study\\b", ignore_case = TRUE)) &
+         !str_detect(source_fields_of_study, regex("\\bsystematic review\\b|\\bmeta\\b|\\breview\\b|\\bcase report\\b|\\bcase reports|\\boverview\\b|\\bliterature\\b|longitudinal|\\bcohort study\\b", ignore_case = TRUE) )
+         )
+
+cross_sectional_publications_final <- mental_health_publications_inclusion_final%>%
+  filter(!str_detect(source_title, regex("longitudinal|\\bcohort study\\b|placebo|\\bblind\\b|\\brandomised controlled trial\\b|\\brandomized controlled trial\\b|\\bsystematic review\\b|\\bmeta\\b|\\breview\\b|\\bcase report\\b|\\bcase reports\\b|\\boverview\\b|\\bliterature\\b", ignore_case = TRUE)) &
+         !str_detect(source_fields_of_study, regex("longitudinal|\\bcohort study\\b|placebo|\\bblind\\b|\\brandomised controlled trial\\b|\\brandomized controlled trial\\b|\\bsystematic review\\b|\\bmeta\\b|\\breview\\b|\\bcase report\\b|\\bcase reports\\b|\\boverview\\b|\\bliterature\\b", ignore_case = TRUE) )
          )
 
 ```
 
+
+```{r systematic reviews meta analysis psychosis depression anxiety data}
+
+reviews_psychosis_publications_final <- reviews_publications_final%>%
+  filter(str_detect(source_title, regex("psychosis", ignore_case = TRUE)) |
+         str_detect(source_fields_of_study,  regex("psychosis", ignore_case = TRUE) )
+         )
+
+reviews_depression_publications_final <- reviews_publications_final%>%
+  filter(str_detect(source_title, regex("depression|depressive|depressed", ignore_case = TRUE)) |
+         str_detect(source_fields_of_study,  regex("depression|depressive|depressed", ignore_case = TRUE) )
+         )
+
+reviews_anxiety_publications_final <- reviews_publications_final%>%
+  filter(str_detect(source_title, regex("anxiety|\\bsocial phobia\\b|phobia|\\bpanic disorder\\b|agoraphobia",
+                                        ignore_case = TRUE)) |
+         str_detect(source_fields_of_study,  regex("anxiety|\\bsocial phobia\\b|phobia|\\bpanic disorder\\b|agoraphobia",
+                                                   ignore_case = TRUE) )
+         )
+
+```
 
 ```{r longitudinal psychosis depression anxiety data}
 
@@ -170,6 +206,28 @@ longitudinal_depression_publications_final <- longitudinal_publications_final%>%
          )
 
 longitudinal_anxiety_publications_final <- longitudinal_publications_final%>%
+  filter(str_detect(source_title, regex("anxiety|\\bsocial phobia\\b|phobia|\\bpanic disorder\\b|agoraphobia",
+                                        ignore_case = TRUE)) |
+         str_detect(source_fields_of_study,  regex("anxiety|\\bsocial phobia\\b|phobia|\\bpanic disorder\\b|agoraphobia",
+                                                   ignore_case = TRUE) )
+         )
+
+```
+
+
+```{r randomized trials psychosis depression anxiety data}
+
+randomized_trials_psychosis_publications_final <- randomized_trials_publications_final%>%
+  filter(str_detect(source_title, regex("psychosis", ignore_case = TRUE)) |
+         str_detect(source_fields_of_study,  regex("psychosis", ignore_case = TRUE) )
+         )
+
+randomized_trials_depression_publications_final <- randomized_trials_publications_final%>%
+  filter(str_detect(source_title, regex("depression|depressive|depressed", ignore_case = TRUE)) |
+         str_detect(source_fields_of_study,  regex("depression|depressive|depressed", ignore_case = TRUE) )
+         )
+
+randomized_trials_anxiety_publications_final <- randomized_trials_publications_final%>%
   filter(str_detect(source_title, regex("anxiety|\\bsocial phobia\\b|phobia|\\bpanic disorder\\b|agoraphobia",
                                         ignore_case = TRUE)) |
          str_detect(source_fields_of_study,  regex("anxiety|\\bsocial phobia\\b|phobia|\\bpanic disorder\\b|agoraphobia",
@@ -200,7 +258,6 @@ cross_sectional_anxiety_publications_final <- cross_sectional_publications_final
 
 ```
 
-
 # **FlowChart**
 
 ```{r flow chart}
@@ -216,24 +273,46 @@ data <- list(a=nrow(mental_health_publications), a_oldest=min(mental_health_publ
              d_newest = max(cross_sectional_publications_final$source_year_published),
              e = nrow(longitudinal_publications_final), e_oldest=min(longitudinal_publications_final$source_year_published),
              e_newest = max(longitudinal_publications_final$source_year_published),
-             f = nrow(cross_sectional_depression_publications_final),
-             f_oldest=min(cross_sectional_depression_publications_final$source_year_published),
-             f_newest = max(cross_sectional_depression_publications_final$source_year_published),
-             g = nrow(cross_sectional_anxiety_publications_final),
-             g_oldest=min(cross_sectional_anxiety_publications_final$source_year_published),
-             g_newest = max(cross_sectional_anxiety_publications_final$source_year_published),
-             h = nrow(cross_sectional_psychosis_publications_final),
-             h_oldest=min(cross_sectional_psychosis_publications_final$source_year_published),
-             h_newest = max(cross_sectional_psychosis_publications_final$source_year_published),
-             i = nrow(longitudinal_depression_publications_final),
-             i_oldest=min(longitudinal_depression_publications_final$source_year_published),
-             i_newest = max(longitudinal_depression_publications_final$source_year_published),
-             j = nrow(longitudinal_anxiety_publications_final), 
-             j_oldest=min(longitudinal_anxiety_publications_final$source_year_published),
-             j_newest = max(longitudinal_anxiety_publications_final$source_year_published),
-             k = nrow(longitudinal_psychosis_publications_final), 
-             k_oldest=min(longitudinal_psychosis_publications_final$source_year_published),
-             k_newest = max(longitudinal_psychosis_publications_final$source_year_published)
+             f = nrow(reviews_publications_final), f_oldest=min(reviews_publications_final$source_year_published),
+             f_newest = max(reviews_publications_final$source_year_published),
+             g = nrow(randomized_trials_publications_final), g_oldest=min(randomized_trials_publications_final$source_year_published),
+             g_newest = max(randomized_trials_publications_final$source_year_published),
+             h = nrow(cross_sectional_depression_publications_final),
+             h_oldest=min(cross_sectional_depression_publications_final$source_year_published),
+             h_newest = max(cross_sectional_depression_publications_final$source_year_published),
+             i = nrow(cross_sectional_anxiety_publications_final),
+             i_oldest=min(cross_sectional_anxiety_publications_final$source_year_published),
+             i_newest = max(cross_sectional_anxiety_publications_final$source_year_published),
+             j = nrow(cross_sectional_psychosis_publications_final),
+             j_oldest=min(cross_sectional_psychosis_publications_final$source_year_published),
+             j_newest = max(cross_sectional_psychosis_publications_final$source_year_published),
+             k = nrow(longitudinal_depression_publications_final),
+             k_oldest=min(longitudinal_depression_publications_final$source_year_published),
+             k_newest = max(longitudinal_depression_publications_final$source_year_published),
+             l = nrow(longitudinal_anxiety_publications_final), 
+             l_oldest=min(longitudinal_anxiety_publications_final$source_year_published),
+             l_newest = max(longitudinal_anxiety_publications_final$source_year_published),
+             m = nrow(longitudinal_psychosis_publications_final), 
+             m_oldest=min(longitudinal_psychosis_publications_final$source_year_published),
+             m_newest = max(longitudinal_psychosis_publications_final$source_year_published),
+             n = nrow(reviews_depression_publications_final), 
+             n_oldest=min(reviews_depression_publications_final$source_year_published),
+             n_newest = max(reviews_depression_publications_final$source_year_published),
+             o = nrow(reviews_anxiety_publications_final), 
+             o_oldest=min(reviews_anxiety_publications_final$source_year_published),
+             o_newest = max(reviews_anxiety_publications_final$source_year_published),
+             p = nrow(reviews_psychosis_publications_final), 
+             p_oldest=min(reviews_psychosis_publications_final$source_year_published),
+             p_newest = max(reviews_psychosis_publications_final$source_year_published),
+             q = nrow(randomized_trials_depression_publications_final), 
+             q_oldest=min(randomized_trials_depression_publications_final$source_year_published),
+             q_newest = max(randomized_trials_depression_publications_final$source_year_published),
+             r = nrow(randomized_trials_anxiety_publications_final), 
+             r_oldest=min(randomized_trials_anxiety_publications_final$source_year_published),
+             r_newest = max(randomized_trials_anxiety_publications_final$source_year_published),
+             s = nrow(randomized_trials_psychosis_publications_final), 
+             s_oldest=min(randomized_trials_psychosis_publications_final$source_year_published),
+             s_newest = max(randomized_trials_psychosis_publications_final$source_year_published)
              )
 
 
@@ -252,10 +331,12 @@ b [label = '@@2']
 compound=true;
 subgraph cluster_filter {
 node [shape=box];
+label = 'Filter Data set';
+ fontsize=18;
+        fontname = 'helvetica-bold';
 style=dashed;
 {{ rank = same; filterby1 filterby2}}
-
-filter [label = 'Filter Dataset']  
+  
 filterby1 [label = 'Filter Title by\n Psychosis or\n Depression or Depressive or Depressed\n or Anxiety or Social Phobia or Phobia\n or Panic Disorder or Agoraphobia or\n Mental Health Disorder(s) or\n Mental Disorder(s) or Mental Problem(s)\n or Mental Health Problem(s)\n or Mental illness\n or Mental Health illness\n or Mental Health Conditions', width = 4.5]
 filterby2 [label = 'Filter Field of Study by\n Psychosis or\n Depression or Depressive or Depressed\n or Anxiety or Social Phobia or Phobia\n or Panic Disorder or Agoraphobia or\n Mental Health Disorder(s) or\n Mental Disorder(s) or Mental Problem(s)\n or Mental Health Problem(s)\n or Mental illness\n or Mental Health illness\n or Mental Health Conditions', width = 4.5]
 }
@@ -263,42 +344,68 @@ filterby2 [label = 'Filter Field of Study by\n Psychosis or\n Depression or Depr
 c [label = '@@3', shape = rectangle, width = 4.5]
 d [label = '@@4', width = 4, shape=box]
 e [label = '@@5', width = 4, shape=box]
+f [label = '@@6', width = 4, shape=box]
+g [label = '@@7', width = 4, shape=box]
 
 
-f [label = '@@6', width = 3, shape=box]
-g [label = '@@7', width = 3, shape=box]
 h [label = '@@8', width = 3, shape=box]
-
 i [label = '@@9', width = 3, shape=box]
 j [label = '@@10', width = 3, shape=box]
+
 k [label = '@@11', width = 3, shape=box]
+l [label = '@@12', width = 3, shape=box]
+m [label = '@@13', width = 3, shape=box]
+
+n [label = '@@14', width = 3, shape=box]
+o [label = '@@15', width = 3, shape=box]
+p [label = '@@16', width = 3, shape=box]
+
+q [label = '@@17', width = 3, shape=box]
+r [label = '@@18', width = 3, shape=box]
+s [label = '@@19', width = 3, shape=box]
 
 
 # edge definitions with the node IDs
 
-data1 -> a -> b -> filter
+data1 -> a -> b
 
-filter -> {filterby1, filterby2} [style = dashed]
+b -> filterby2 [lhead = cluster_filter]
 
-filterby1 -> filterby2 [style = dashed, minlen=2, label = 'or', dir=both ]
+filterby1 -> filterby2 [style = dashed, minlen=1.5, label = 'or', dir=both ]
 
-{filterby1, filterby2} -> c [style = dashed, minlen=2]
+filterby2 -> c [ltail = cluster_filter]
 
-c -> {d, e}[minlen=2]
+c -> {d, e, f, g}[minlen=2]
 
-d -> e[minlen=3, style=invis];
+d -> e[minlen=1.5, style=invis];
 {{ rank = same; d e }}
   
+e -> f[minlen=1.5, style=invis];
+{{ rank = same; e f }}
+  
+f -> g[minlen=1.5, style=invis];
+  {{ rank = same; f g }}
 
-d -> {f, g, h}
+d -> {h, i, j}
 
-e -> {i, j, k}
+e -> {k, l, m}
 
-f -> g[style=invis]
-g -> h[style=invis]
+f -> {n, o, p}
 
+g -> {q, r, s}
+
+h -> i[style=invis]
 i -> j[style=invis]
-j -> k[style=invis]
+
+k -> l[style=invis]
+l -> m[style=invis]
+
+n -> o[style=invis]
+o -> p[style=invis]
+
+q -> r[style=invis]
+r -> s[style=invis]
+
 
 }
 
@@ -307,12 +414,20 @@ j -> k[style=invis]
 [3]: paste0('Inclusion papers (n = ', data$c, ')', '\\n' , '\\n', '(oldest=', data$c_oldest, ', newest=', data$c_newest, ')')
 [4]: paste0('Cross-Sectional  (n = ', data$d, ')', '\\n' , '\\n', '(oldest=', data$d_oldest, ', newest=', data$d_newest, ')')
 [5]: paste0('Longitudinal  (n = ', data$e, ')', '\\n' , '\\n', '(oldest=', data$e_oldest, ', newest=', data$e_newest, ')')
-[6]: paste0('Depression  (n = ', data$f, ')', '\\n' , '\\n', '(oldest=', data$f_oldest, ', newest=', data$f_newest, ')')
-[7]: paste0('Anxiety  (n = ', data$g, ')', '\\n' , '\\n', '(oldest=', data$g_oldest, ', newest=', data$g_newest, ')')
-[8]: paste0('Psychosis  (n = ', data$h, ')', '\\n' , '\\n', '(oldest=', data$h_oldest, ', newest=', data$h_newest, ')')
-[9]: paste0('Depression  (n = ', data$i, ')', '\\n' , '\\n', '(oldest=', data$i_oldest, ', newest=', data$i_newest, ')')
-[10]: paste0('Anxiety  (n = ', data$j, ')', '\\n' , '\\n', '(oldest=', data$j_oldest, ', newest=', data$j_newest, ')')
-[11]: paste0('Psychosis  (n = ', data$k, ')', '\\n' , '\\n', '(oldest=', data$k_oldest, ', newest=', data$k_newest, ')')
+[6]: paste0('Reviews(Systemic & Literature)/\\n Meta Analysis/Case Reports (n = ', data$f, ')' , '\\n', '\\n', '(oldest=', data$f_oldest, ', newest=', data$f_newest, ')')
+[7]: paste0('Randomized Trials (n = ', data$g, ')', '\\n' , '\\n', '(oldest=', data$g_oldest, ', newest=', data$g_newest, ')')
+[8]: paste0('Depression  (n = ', data$h, ')', '\\n' , '\\n', '(oldest=', data$h_oldest, ', newest=', data$h_newest, ')')
+[9]: paste0('Anxiety  (n = ', data$i, ')', '\\n' , '\\n', '(oldest=', data$i_oldest, ', newest=', data$i_newest, ')')
+[10]: paste0('Psychosis  (n = ', data$j, ')', '\\n' , '\\n', '(oldest=', data$j_oldest, ', newest=', data$j_newest, ')')
+[11]: paste0('Depression  (n = ', data$k, ')', '\\n' , '\\n', '(oldest=', data$k_oldest, ', newest=', data$k_newest, ')')
+[12]: paste0('Anxiety  (n = ', data$l, ')', '\\n' , '\\n', '(oldest=', data$l_oldest, ', newest=', data$l_newest, ')')
+[13]: paste0('Psychosis  (n = ', data$m, ')', '\\n' , '\\n', '(oldest=', data$m_oldest, ', newest=', data$m_newest, ')')
+[14]: paste0('Depression  (n = ', data$n, ')', '\\n' , '\\n', '(oldest=', data$n_oldest, ', newest=', data$n_newest, ')')
+[15]: paste0('Anxiety  (n = ', data$o, ')', '\\n' , '\\n', '(oldest=', data$o_oldest, ', newest=', data$o_newest, ')')
+[16]: paste0('Psychosis  (n = ', data$p, ')', '\\n' , '\\n', '(oldest=', data$p_oldest, ', newest=', data$p_newest, ')')
+[17]: paste0('Depression  (n = ', data$q, ')', '\\n' , '\\n', '(oldest=', data$q_oldest, ', newest=', data$q_newest, ')')
+[18]: paste0('Anxiety  (n = ', data$r, ')', '\\n' , '\\n', '(oldest=', data$r_oldest, ', newest=', data$r_newest, ')')
+[19]: paste0('Psychosis  (n = ', data$s, ')', '\\n' , '\\n', '(oldest=', data$s_oldest, ', newest=', data$s_newest, ')')
 
 ")
 
@@ -358,11 +473,19 @@ inclusion_cross_sectional_data <- cross_sectional_publications_final%>%
 inclusion_longitudinal_data <- longitudinal_publications_final%>%
   mutate(number= 1:n())
 
+inclusion_reviews_data <- reviews_publications_final%>%
+  mutate(number= 1:n())
+
+inclusion_randomized_trials_data <- randomized_trials_publications_final%>%
+  mutate(number= 1:n())
+
 writexl::write_xlsx(list(inclusion = inclusion_data,
                          exclusion = exclusion_data,
                          exclusion_random = exclusion_data_random,
                          inclusion_cross_sectional = inclusion_cross_sectional_data,
-                         inclusion_longitudinal = inclusion_longitudinal_data),
+                         inclusion_longitudinal = inclusion_longitudinal_data,
+                         inclusion_reviews_meta_case = inclusion_reviews_data,
+                         inclusion__randomized_trials = inclusion_randomized_trials_data),
                     "mental_health_publications_inclusion_exclusion_final.xlsx")
 
 ```
