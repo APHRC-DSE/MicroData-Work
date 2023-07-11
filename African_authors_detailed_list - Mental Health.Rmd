@@ -62,7 +62,7 @@ invisible(lapply(libs_mental_health, library, character.only=T))
            q = c("name contains 'Mental Health'",
                  "mimeType = 'application/vnd.google-apps.shortcut'")) #search for a specific set of shared drives, use the query string q
 
-  list_files_shortcut_folder <- drive_ls(path = mental_file_id$id, q = c("name contains 'African_authors_detailed_list (2) (1).xlsx'"))
+  list_files_shortcut_folder <- drive_ls(path = mental_file_id$id, q = c("name = 'African_authors_detailed_list (2) (1).xlsx'"))
   
   
   mental_local_download <- drive_download(list_files_shortcut_folder$id, overwrite = TRUE)
@@ -145,28 +145,28 @@ mental_health_publications_exclusion_final <- mental_health_publications_distinc
 ```{r longitudinal cross sectional reviews Randomized trials}
 
 longitudinal_publications_final <- mental_health_publications_inclusion_final%>%
-  filter(str_detect(source_title, regex("longitudinal|\\bcohort study\\b",ignore_case = TRUE)) |
-         str_detect(source_fields_of_study, regex("longitudinal|\\bcohort study\\b",ignore_case = TRUE) )
+  filter(str_detect(source_title, regex("longitudinal|\\bcohort study\\b|\\bpanel study\\b",ignore_case = TRUE)) |
+         str_detect(source_fields_of_study, regex("longitudinal|\\bcohort study\\b|\\bpanel study\\b",ignore_case = TRUE) )
          )
 
 reviews_publications_final <- mental_health_publications_inclusion_final%>%
   filter(str_detect(source_title, regex("\\bsystematic review\\b|\\bmeta\\b|\\breview\\b|\\bcase report\\b|\\bcase reports\\b|\\boverview\\b|\\bliterature\\b", ignore_case = TRUE)) |
          str_detect(source_fields_of_study, regex("\\bsystematic review\\b|\\bmeta\\b|\\breview\\b|\\bcase report\\b|\\bcase reports\\b|\\boverview\\b|\\bliterature\\b", ignore_case = TRUE) ),
-         !str_detect(source_title, regex("longitudinal|\\bcohort study\\b", ignore_case = TRUE)) &
-         !str_detect(source_fields_of_study, regex("longitudinal|\\bcohort study\\b", ignore_case = TRUE) )
+         !str_detect(source_title, regex("longitudinal|\\bcohort study\\b|\\bpanel study\\b", ignore_case = TRUE)) &
+         !str_detect(source_fields_of_study, regex("longitudinal|\\bcohort study\\b|\\bpanel study\\b", ignore_case = TRUE) )
          )
 
 randomized_trials_publications_final <- mental_health_publications_inclusion_final%>%
   filter(str_detect(source_title, regex("placebo|\\bblind\\b|\\brandomised controlled trial\\b|\\brandomized controlled trial\\b",
                                         ignore_case = TRUE)) |
          str_detect(source_fields_of_study, regex("placebo|\\bblind\\b|\\brandomised controlled trial\\b|\\brandomized controlled trial\\b",ignore_case = TRUE) ),
-         !str_detect(source_title, regex("\\bsystematic review\\b|\\bmeta\\b|\\breview\\b|\\bcase report\\b|\\bcase reports\\b|\\boverview\\b|\\bliterature\\b|longitudinal|\\bcohort study\\b", ignore_case = TRUE)) &
-         !str_detect(source_fields_of_study, regex("\\bsystematic review\\b|\\bmeta\\b|\\breview\\b|\\bcase report\\b|\\bcase reports|\\boverview\\b|\\bliterature\\b|longitudinal|\\bcohort study\\b", ignore_case = TRUE) )
+         !str_detect(source_title, regex("\\bsystematic review\\b|\\bmeta\\b|\\breview\\b|\\bcase report\\b|\\bcase reports\\b|\\boverview\\b|\\bliterature\\b|longitudinal|\\bcohort study\\b|\\bpanel study\\b", ignore_case = TRUE)) &
+         !str_detect(source_fields_of_study, regex("\\bsystematic review\\b|\\bmeta\\b|\\breview\\b|\\bcase report\\b|\\bcase reports|\\boverview\\b|\\bliterature\\b|longitudinal|\\bcohort study\\b|\\bpanel study\\b", ignore_case = TRUE) )
          )
 
 cross_sectional_publications_final <- mental_health_publications_inclusion_final%>%
-  filter(!str_detect(source_title, regex("longitudinal|\\bcohort study\\b|placebo|\\bblind\\b|\\brandomised controlled trial\\b|\\brandomized controlled trial\\b|\\bsystematic review\\b|\\bmeta\\b|\\breview\\b|\\bcase report\\b|\\bcase reports\\b|\\boverview\\b|\\bliterature\\b", ignore_case = TRUE)) &
-         !str_detect(source_fields_of_study, regex("longitudinal|\\bcohort study\\b|placebo|\\bblind\\b|\\brandomised controlled trial\\b|\\brandomized controlled trial\\b|\\bsystematic review\\b|\\bmeta\\b|\\breview\\b|\\bcase report\\b|\\bcase reports\\b|\\boverview\\b|\\bliterature\\b", ignore_case = TRUE) )
+  filter(!str_detect(source_title, regex("longitudinal|\\bcohort study\\b|\\bpanel study\\b|placebo|\\bblind\\b|\\brandomised controlled trial\\b|\\brandomized controlled trial\\b|\\bsystematic review\\b|\\bmeta\\b|\\breview\\b|\\bcase report\\b|\\bcase reports\\b|\\boverview\\b|\\bliterature\\b", ignore_case = TRUE)) &
+         !str_detect(source_fields_of_study, regex("longitudinal|\\bcohort study\\b|\\bpanel study\\b|placebo|\\bblind\\b|\\brandomised controlled trial\\b|\\brandomized controlled trial\\b|\\bsystematic review\\b|\\bmeta\\b|\\breview\\b|\\bcase report\\b|\\bcase reports\\b|\\boverview\\b|\\bliterature\\b", ignore_case = TRUE) )
          )
 
 ```
