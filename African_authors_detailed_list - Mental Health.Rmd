@@ -82,8 +82,8 @@ invisible(lapply(libs_mental_health, library, character.only=T))
 ```{r distinct titles, include=FALSE}
 
 mental_health_publications_distinct <- mental_health_publications%>%
-  mutate(source_title = str_to_title(source_title)
-         #,source_title = gsub(".", "", source_title, fixed = TRUE)
+  mutate(source_title = str_to_title(source_title) #
+         ,source_title = gsub("\\.$", "", source_title) #Removing period at end of string
          )%>%
   distinct(source_title, .keep_all = TRUE)
 
@@ -448,14 +448,35 @@ g1
 
 ```{r random selection}
 
+#Select 10 random numbers 50 times
+inclusion_data <- mental_health_publications_inclusion_final%>%
+  mutate(number= 1:n())
+
 exclusion_data <- mental_health_publications_exclusion_final%>%
   mutate(number= 1:n())
 
-set.seed(1111)
-exclusion_random <- round(runif(20, min = min(exclusion_data$number), max = max(exclusion_data$number)),0)
 
-exclusion_data_random <- tibble(random_number = c(exclusion_random))%>%
+set.seed(1111)
+exclusion_random <- as.data.frame(replicate(50, sample(exclusion_data$number, 10, replace=FALSE)))%>%
+  pivot_longer(everything(), 
+               names_to = "times",
+               names_prefix = "V",
+    values_to = "random_number")%>%
+  arrange(as.numeric(times))
+
+inclusion_random <- as.data.frame(replicate(50, sample(inclusion_data$number, 10, replace=FALSE)))%>%
+  pivot_longer(everything(), 
+               names_to = "times",
+               names_prefix = "V",
+    values_to = "random_number")%>%
+  arrange(as.numeric(times))
+
+
+exclusion_data_random <- exclusion_random%>%
   left_join(exclusion_data, by = c("random_number" = "number"))
+
+inclusion_data_random <- inclusion_random%>%
+  left_join(inclusion_data, by = c("random_number" = "number"))
 
 ```
 
@@ -463,9 +484,6 @@ exclusion_data_random <- tibble(random_number = c(exclusion_random))%>%
 ```{r saving inclusion and exclusion}
 
 #readr::write_csv(mental_health_publications_final,"mental_health_publications_final.csv", na="")
-
-inclusion_data <- mental_health_publications_inclusion_final%>%
-  mutate(number= 1:n())
 
 inclusion_cross_sectional_data <- cross_sectional_publications_final%>%
   mutate(number= 1:n())
@@ -482,6 +500,7 @@ inclusion_randomized_trials_data <- randomized_trials_publications_final%>%
 writexl::write_xlsx(list(inclusion = inclusion_data,
                          exclusion = exclusion_data,
                          exclusion_random = exclusion_data_random,
+                         inclusion_random = inclusion_data_random, 
                          inclusion_cross_sectional = inclusion_cross_sectional_data,
                          inclusion_longitudinal = inclusion_longitudinal_data,
                          inclusion_reviews_meta_case = inclusion_reviews_data,
