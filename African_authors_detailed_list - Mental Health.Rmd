@@ -107,8 +107,9 @@ review_words <- regex(paste(c("\\bsystematic review\\b", "\\bmeta\\b", "\\brevie
                               "\\boverview\\b", "\\bliterature\\b"),  sep = "", collapse = '|'),
                                          ignore_case = TRUE)
 
-randomized_trials_words <- regex(paste(c("placebo", "\\bblind\\b", "\\brandomised controlled trial\\b", "\\brandomized controlled trial\\b",
-                                         "randomised", "randomized", "randomization"), sep = "", collapse = '|'),
+randomized_trials_words <- regex(paste(c("placebo", "\\bdouble-blind\\b", "\\bdouble blind\\b", "\\bsingle-blind\\b", "\\bsingle blind\\b", 
+                                         "\\brandomised controlled trial\\b", "\\brandomized controlled trial\\b", "randomised", "randomized",
+                                         "randomization"), sep = "", collapse = '|'),
                                          ignore_case = TRUE)
 
 psychosis_words <- regex(paste(c("psychosis"),  sep = "", collapse = '|'),
